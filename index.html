@@ -1,0 +1,849 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#e8383b">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Trajet">
+<title>Trajet — Covoiturage & Moto en Côte d’Ivoire</title>
+<link rel="preconnect" href="https://fokibiczyrdbovnwoflu.supabase.co" crossorigin>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+<link rel="preconnect" href="https://unpkg.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" id="fontcss" media="print">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"></noscript>
+<style>
+:root{
+  --bg:#f4f6f9;--card:#ffffff;--soft:#edf0f5;--ink:#12141c;--mut:#646a7c;--line:#e2e6ef;
+  --red:#e8383b;--red-h:#d1292c;--redsoft:#fdeeee;
+  --green:#16804d;--greensoft:#e3f5ec;
+  --amber:#946500;--ambersoft:#fcf0d4;
+  --shadow:0 8px 30px rgba(18,20,28,.06);
+  color-scheme:light;box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#0b0d12;--card:#141720;--soft:#1d212c;--ink:#f3f4f8;--mut:#949ba8;--line:#282d3c;
+    --redsoft:#381c20;--greensoft:#153024;--green:#5ce09e;--amber:#f5c558;--ambersoft:#382e18;
+    --shadow:0 8px 30px rgba(0,0,0,.4);color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0b0d12;--card:#141720;--soft:#1d212c;--ink:#f3f4f8;--mut:#949ba8;--line:#282d3c;
+  --redsoft:#381c20;--greensoft:#153024;--green:#5ce09e;--amber:#f5c558;--ambersoft:#382e18;
+  --shadow:0 8px 30px rgba(0,0,0,.4);color-scheme:dark;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 "Plus Jakarta Sans",system-ui,-apple-system,sans-serif}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);background:var(--bg);z-index:20}
+.num{font-variant-numeric:tabular-nums}
+.app{max-width:480px;margin:0 auto;min-height:100vh;padding-bottom:104px}
+
+/* Map container styling */
+.map-box{width:100%;height:240px;border-radius:16px;overflow:hidden;margin:12px 0;border:1.5px solid var(--line);z-index:1}
+.leaflet-popup-content-wrapper,.leaflet-popup-tip{background:var(--card)!important;color:var(--ink)!important;border-radius:12px!important;box-shadow:var(--shadow)!important}
+.leaflet-container{font-family:"Plus Jakarta Sans",sans-serif!important}
+
+/* Header & Bottom Navigation */
+header{position:sticky;top:env(safe-area-inset-top,0px);z-index:15;background:var(--card);backdrop-filter:blur(16px);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:12px;padding:12px 18px}
+.logo{width:36px;height:36px;border-radius:11px;background:var(--red);color:#fff;display:grid;place-items:center;font-weight:800;font-size:18px;box-shadow:0 4px 12px rgba(232,56,59,.35)}
+.brand{font-size:22px;font-weight:800;letter-spacing:-.5px}.brand b{color:var(--red)}
+.role{margin-left:auto;font-size:12px;font-weight:700;background:var(--redsoft);color:var(--red);padding:5px 11px;border-radius:99px}
+.bell{position:relative;background:var(--soft);padding:0;width:40px;height:40px;min-height:40px;border-radius:50%;display:grid;place-items:center}
+.bell i{position:absolute;top:-2px;right:-2px;background:var(--red);color:#fff;font:700 11px/18px sans-serif;min-width:18px;border-radius:99px;font-style:normal;padding:0 4px}
+
+nav{position:fixed;bottom:0;left:0;right:0;background:var(--card);border-top:1px solid var(--line);padding:6px 8px calc(8px + env(safe-area-inset-bottom,0px));z-index:15}
+nav div{max-width:480px;margin:0 auto;display:flex;gap:4px}
+nav button{flex:1;background:transparent;font-size:11px;font-weight:700;padding:6px 4px;color:var(--mut);display:flex;flex-direction:column;align-items:center;gap:4px;min-height:52px;border-radius:12px;transition:all .15s}
+nav button.on{background:var(--redsoft);color:var(--red)}
+
+/* Layout & Cards */
+main{padding:18px}
+h1{font-size:26px;margin:4px 0 4px;letter-spacing:-.6px;line-height:1.15}
+h2{font-size:18px;margin:22px 0 10px;letter-spacing:-.3px}
+p.sub{color:var(--mut);margin:0 0 16px;font-size:14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:16px;margin-bottom:14px;box-shadow:var(--shadow)}
+.route{font-size:18px;font-weight:800;letter-spacing:-.3px}
+.meta{color:var(--mut);font-size:13.5px;margin:4px 0 10px}
+.price{color:var(--red);font-weight:800;font-size:19px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.row{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}.rl{justify-content:flex-start}
+
+/* Badges & Buttons */
+.badge{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:700;padding:4px 10px;border-radius:99px;background:var(--soft);color:var(--mut);margin:0 4px 4px 0}
+.b-ok{background:var(--greensoft);color:var(--green)}.b-wait{background:var(--ambersoft);color:var(--amber)}.b-red{background:var(--redsoft);color:var(--red)}
+
+button{font:inherit;font-weight:700;border:0;border-radius:14px;padding:12px 16px;cursor:pointer;background:var(--soft);color:var(--ink);min-height:46px;transition:transform .1s,opacity .15s}
+button:active:not(:disabled){transform:scale(.98)}
+button:disabled{opacity:.5;cursor:not-allowed}
+button.pri{background:var(--red);color:#fff;box-shadow:0 4px 14px rgba(232,56,59,.3)}
+button.ok{background:var(--green);color:#fff}
+button.out{background:transparent;border:1.5px solid var(--line)}
+button.sos{background:#b3212a;color:#fff;width:100%;box-shadow:0 4px 14px rgba(179,33,42,.35)}
+button.full{width:100%}
+.btns{display:flex;gap:10px;margin-top:12px}.btns>button{flex:1}
+.link{background:none;color:var(--red);padding:6px 0;min-height:0;font-size:14px}
+
+/* Form inputs & controls */
+label{display:block;font-weight:700;font-size:13.5px;margin:12px 0 6px}
+input,select,textarea{width:100%;min-width:0;font:inherit;padding:13px 14px;border-radius:14px;border:1.5px solid var(--line);background:var(--card);color:var(--ink);transition:border-color .15s}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--red)}
+input[type=checkbox]{width:22px;height:22px;flex:none;accent-color:var(--red)}
+input[type=date],input[type=time]{-webkit-appearance:none;appearance:none;max-width:100%;min-height:48px;display:block}
+.swap-wrap{position:relative}
+.swap-btn{position:absolute;right:10px;top:50%;transform:translateY(-50%);width:36px;height:36px;min-height:36px;padding:0;border-radius:50%;background:var(--soft);display:grid;place-items:center;font-size:16px}
+
+/* Segments, Chips & Grids */
+.seg{display:flex;gap:6px;background:var(--soft);padding:5px;border-radius:16px;overflow-x:auto}
+.seg button{flex:1;background:transparent;padding:9px 10px;min-height:40px;white-space:nowrap;font-size:14px}
+.seg button.on{background:var(--red);color:#fff;box-shadow:0 2px 8px rgba(232,56,59,.25)}
+.chips{display:flex;gap:8px;overflow-x:auto;padding-bottom:6px;scrollbar-width:none}.chips::-webkit-scrollbar{display:none}
+.chips button{flex:none;padding:7px 14px;min-height:36px;border-radius:99px;font-size:13.5px}
+.chips button.on{background:var(--red);color:#fff}
+
+/* Banner / Ads */
+.ad{position:relative;height:130px;border-radius:20px;overflow:hidden;margin-bottom:14px;background:linear-gradient(135deg,#e8383b,#ff9f5a);color:#fff}
+.ad img{width:100%;height:100%;object-fit:cover;display:block}
+.ad .t{position:absolute;left:0;right:0;bottom:0;padding:24px 14px 10px;background:linear-gradient(transparent,rgba(0,0,0,.7))}
+.ad.tx .t{position:static;background:none;padding:22px 16px}
+.ad.bn{height:auto;background:none;border-radius:16px}.ad.bn img{width:100%;height:auto;object-fit:contain;display:block}
+.ad small{position:absolute;top:8px;right:10px;background:rgba(0,0,0,.5);padding:2px 8px;border-radius:99px;font-size:11px}
+
+/* Tiles & Quick elements */
+.lbar{margin-bottom:12px}.lt1{font-size:12.5px;color:var(--mut);font-weight:600}.lt2{font-size:20px;font-weight:800;letter-spacing:-.3px}
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:14px 0}
+.tile{display:flex;flex-direction:column;align-items:flex-start;gap:4px;background:var(--card);border:1px solid var(--line);border-radius:22px;padding:12px 14px 14px;text-align:left;min-height:144px;overflow:hidden;box-shadow:var(--shadow)}
+.tile svg{width:100%;height:70px;margin-bottom:4px}.tile b{font-size:16.5px}.tile small{color:var(--mut);font-weight:600;font-size:12.5px}
+.tile.on{border-color:var(--red);background:var(--redsoft)}
+
+.where{display:flex;align-items:center;gap:12px;width:100%;background:var(--card);border:1.5px solid var(--line);border-radius:20px;padding:14px 16px;font-size:17px;margin-bottom:6px;box-shadow:var(--shadow)}
+.where b{flex:1;text-align:left}.where span.ico-wrap{background:var(--red);color:#fff;width:30px;height:30px;border-radius:50%;display:grid;place-items:center}
+
+.prow{display:flex;align-items:center;gap:14px;width:100%;background:none;border-radius:0;padding:12px 4px;text-align:left;border-bottom:1px solid var(--line)}
+.prow .pi{width:44px;height:44px;border-radius:14px;background:var(--soft);display:grid;place-items:center;flex:none}
+.prow b{display:block;font-size:15px}.prow small{color:var(--mut);font-weight:500;font-size:13px}
+
+.safe{background:linear-gradient(135deg,#0f264d,#1d4c9c);color:#fff;border-radius:24px;padding:22px;margin:22px 0 8px;position:relative;overflow:hidden}
+.safe .st{font-size:24px;font-weight:800;line-height:1.1;letter-spacing:-.5px}
+.safe p{margin:8px 0 14px;opacity:.9;max-width:65%;font-size:14px}
+.safe .chips2{display:flex;flex-wrap:wrap;gap:8px;max-width:80%}
+.safe .chips2 button{background:rgba(255,255,255,.16);color:#fff;border-radius:99px;padding:7px 13px;min-height:34px;font-size:12.5px}
+.safe svg.bg{position:absolute;right:-6px;top:10px;width:115px}
+
+/* Profile avatars & stats */
+.pavw{position:relative;width:110px;margin:6px auto 12px}
+.pav{position:relative;display:grid;place-items:center;width:110px;height:110px;border-radius:50%;background:var(--soft);overflow:hidden;cursor:pointer;border:3px solid var(--card);box-shadow:var(--shadow)}
+.pav img{width:100%;height:100%;object-fit:cover}.pav input{position:absolute;inset:0;opacity:0;width:100%;height:100%;cursor:pointer;padding:0}
+.pavb{position:absolute;right:0;bottom:2px;width:32px;height:32px;border-radius:50%;background:var(--red);color:#fff;display:grid;place-items:center;font-size:20px;font-weight:700;border:3px solid var(--bg)}
+.pname{font-size:24px;font-weight:800;text-align:center;letter-spacing:-.4px}.pphone{text-align:center;color:var(--mut);margin-bottom:8px;font-size:14px}
+.qa{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:16px 0}
+.qa button{background:none;display:flex;flex-direction:column;align-items:center;gap:6px;padding:0;font-size:12.5px;min-height:0}
+.qa .c{width:56px;height:56px;border-radius:50%;background:var(--card);border:1px solid var(--line);display:grid;place-items:center;box-shadow:var(--shadow)}
+
+.prog{display:flex;align-items:center;gap:14px;width:100%;background:var(--redsoft);border-radius:20px;padding:14px 16px;text-align:left;position:relative;margin:6px 0 16px}
+.prog input{position:absolute;inset:0;opacity:0;width:100%;height:100%;cursor:pointer;padding:0}
+.prog b{color:var(--red);display:block;font-size:15px}.prog small{color:var(--red);opacity:.85;font-weight:600;font-size:13px}
+.ring{--p:50;width:52px;height:52px;border-radius:50%;background:conic-gradient(var(--red) calc(var(--p)*1%),rgba(232,56,59,.2) 0);display:grid;place-items:center;flex:none;font-weight:800;font-size:13.5px;color:var(--red);position:relative}
+.ring::before{content:"";position:absolute;inset:6px;border-radius:50%;background:var(--redsoft)}.ring span{position:relative}
+.rg{--p:80;width:28px;height:28px;border-radius:50%;background:conic-gradient(var(--green) calc(var(--p)*1%),var(--line) 0);position:relative;flex:none}
+.rg::before{content:"";position:absolute;inset:5px;border-radius:50%;background:var(--card)}
+
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:16px;text-align:center;padding:12px 4px}
+.stat b{display:block;font-size:20px;font-variant-numeric:tabular-nums}.stat span{font-size:12px;color:var(--mut)}
+
+.grp{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:2px 0;margin-bottom:14px;box-shadow:var(--shadow)}
+.row2{display:flex;align-items:center;gap:14px;width:100%;background:none;border-radius:0;padding:14px 16px;text-align:left;min-height:60px}
+.grp .row2+.row2{border-top:1px solid var(--line)}
+.row2 .ri{flex:none;display:grid;place-items:center;width:30px}.row2 .rt2{flex:1;min-width:0}
+.row2 .rt2 b{display:block;font-weight:700;font-size:15.5px}.row2 .rt2 small{display:block;color:var(--mut);font-weight:500;font-size:13px}.row2 .ch{color:var(--mut);flex:none}
+
+/* Messages, Chat & Tracking */
+.empty{border:1.5px dashed var(--line);border-radius:18px;padding:24px 18px;text-align:center;color:var(--mut);font-size:14.5px}
+.note{background:var(--ambersoft);color:var(--amber);border-radius:14px;padding:12px 14px;margin-bottom:14px;font-size:13.5px;font-weight:600}
+#toast{position:fixed;left:50%;bottom:92px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:11px 18px;border-radius:99px;font-size:14px;font-weight:600;z-index:30;max-width:90%;text-align:center;box-shadow:0 8px 24px rgba(0,0,0,.25)}
+.av{width:42px;height:42px;border-radius:50%;background:var(--redsoft);color:var(--red);display:grid;place-items:center;font-weight:800;overflow:hidden;flex:none}.av img{width:100%;height:100%;object-fit:cover}.av.lg{width:64px;height:64px;font-size:24px}
+.ph{display:flex;gap:8px;overflow-x:auto;margin-top:10px}.ph img{width:96px;height:72px;object-fit:cover;border-radius:12px;flex:none}
+.doc{display:flex;align-items:center;justify-content:space-between;gap:10px;border:1.5px dashed var(--line);border-radius:14px;padding:12px 14px;margin-bottom:10px}.doc.done{border-style:solid;border-color:var(--green);background:var(--greensoft)}
+.up{position:relative;overflow:hidden;display:inline-block;flex:none}.up input{position:absolute;inset:0;opacity:0;width:100%;cursor:pointer;padding:0}.up span{display:inline-block;background:var(--soft);padding:10px 14px;border-radius:12px;font-weight:700;font-size:13.5px;color:var(--ink)}
+.tel{display:flex;gap:8px}.tel b{background:var(--soft);border-radius:14px;padding:13px 12px;display:grid;place-items:center}.unread{border-color:var(--red)}
+.chk{display:flex;gap:10px;align-items:center;margin:14px 0}.chk label{margin:0;font-weight:400;font-size:13.5px}
+.faq{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px 16px;margin-bottom:10px}.faq summary{font-weight:700;cursor:pointer;font-size:15px}.faq p{margin:10px 0 0;color:var(--mut);font-size:14px}
+
+.msgs{display:flex;flex-direction:column;gap:8px;min-height:42vh;padding-bottom:16px}
+.bub{max-width:82%;padding:10px 14px;border-radius:18px;background:var(--card);border:1px solid var(--line);align-self:flex-start;word-break:break-word}
+.bub.me{align-self:flex-end;background:var(--red);color:#fff;border-color:var(--red)}
+.bub small{display:block;font-size:11px;opacity:.7;margin-top:3px}.bub audio{max-width:230px;height:36px}
+.cbar{position:sticky;bottom:76px;display:flex;gap:8px;align-items:center;background:var(--bg);padding:10px 0;border-top:1px solid var(--line)}
+.cbar input{flex:1}.cbar button{flex:none}.rec{flex:1;font-weight:700;color:var(--red)}
+
+.rt{display:flex;justify-content:space-between;gap:8px;font-size:13px;font-weight:700;margin-top:12px}
+
+/* Onboarding Modal */
+.ob{position:fixed;inset:0;z-index:45;background:#111;color:#fff;display:flex;flex-direction:column}.ob[hidden]{display:none}
+.track{flex:1;display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none}.track::-webkit-scrollbar{display:none}
+.sl{flex:0 0 100%;scroll-snap-align:start;position:relative;overflow:hidden}.sl img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.sl::after{content:"";position:absolute;inset:0;background:linear-gradient(to top,rgba(10,10,16,.92) 0,rgba(10,10,16,.4) 45%,transparent 72%)}
+.otx{position:absolute;left:24px;right:24px;bottom:150px;z-index:2}.otx h2{font-size:30px;line-height:1.1;margin:0 0 10px;letter-spacing:-.8px}.otx p{margin:0;font-size:16px;opacity:.92}
+.obar{position:absolute;left:0;right:0;bottom:0;z-index:3;padding:20px 24px calc(24px + env(safe-area-inset-bottom,0px));max-width:480px;margin:0 auto}
+.dots{display:flex;gap:8px;justify-content:center;margin-bottom:16px}.dots i{width:8px;height:8px;border-radius:99px;background:rgba(255,255,255,.4)}.dots i.on{width:26px;background:#fff}
+.skip{position:absolute;top:calc(14px + env(safe-area-inset-top,0px));right:18px;z-index:3;background:rgba(0,0,0,.45);color:#fff;min-height:40px;padding:8px 16px;border-radius:99px}
+</style>
+<style id="trajet-cybercab-v4">
+:root{--ccbg:#f7f7f5;--ccpanel:#fff;--ccink:#111;--ccmut:#777b80;--ccline:#e7e7e4;--ccred:#e21d2a}
+[data-theme=dark]{--ccbg:#090a0b;--ccpanel:#121315;--ccink:#f7f7f7;--ccmut:#9b9da1;--ccline:#242529}
+body{background:var(--ccbg)!important;color:var(--ccink)!important;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Helvetica Neue",Arial,sans-serif!important}.app{max-width:430px!important;background:var(--ccbg);padding-bottom:105px}header{height:60px!important;padding:10px 18px!important;background:color-mix(in srgb,var(--ccbg) 88%,transparent)!important;border:0!important;backdrop-filter:blur(24px)!important}.logo{width:34px!important;height:34px!important;border-radius:50%!important;background:#111!important;box-shadow:none!important}.brand{font-size:19px!important}.role{background:transparent!important;color:var(--ccmut)!important;padding:0!important}.bell{background:transparent!important;width:34px!important;height:34px!important}main{padding:0 18px 36px!important}h1{font-size:34px!important;line-height:1.02!important;letter-spacing:-1.7px!important}.sub{color:var(--ccmut)!important}.card{background:var(--ccpanel)!important;border:1px solid var(--ccline)!important;border-radius:24px!important;box-shadow:0 10px 30px rgba(0,0,0,.035)!important}input,select,textarea{background:var(--ccpanel)!important;border:1px solid var(--ccline)!important;border-radius:16px!important;color:var(--ccink)!important;min-height:48px!important}.pri{background:#111!important;color:#fff!important;border-radius:999px!important;min-height:50px!important;font-weight:700!important;border:0!important}.out{background:var(--ccpanel)!important;border:1px solid var(--ccline)!important;border-radius:999px!important;color:var(--ccink)!important;min-height:46px!important}nav{background:transparent!important;border:0!important;padding:0 14px calc(12px + env(safe-area-inset-bottom))!important}nav>div{background:rgba(18,19,21,.97)!important;border-radius:999px!important;padding:5px!important;box-shadow:0 12px 34px rgba(0,0,0,.2)!important;max-width:390px!important}nav button{color:#a4a6aa!important;border-radius:999px!important;min-height:50px!important;font-size:10px!important}nav button.on{background:#fff!important;color:#111!important}
+.cy{padding-top:18px}.cy-k{font-size:11px;color:var(--ccmut);font-weight:700;letter-spacing:.08em}.cy-title{font-size:41px;line-height:.96;letter-spacing:-2.6px;font-weight:780;margin:9px 0 24px}.cy-title em{font-style:normal;color:var(--ccred)}.cy-box{background:var(--ccpanel);border:1px solid var(--ccline);border-radius:30px;padding:7px;box-shadow:0 18px 50px rgba(0,0,0,.07)}.cy-loc{display:flex;align-items:center;gap:12px;padding:13px 14px;background:transparent;border:0;width:100%;text-align:left}.cy-dot{width:10px;height:10px;border:2px solid var(--ccink);border-radius:50%;flex:none}.cy-dot.red{border-color:var(--ccred);background:var(--ccred)}.cy-loc b{display:block;font-size:11px;color:var(--ccmut)}.cy-loc span{display:block;font-size:16px;font-weight:650;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.cy-line{height:16px;border-left:1px solid var(--ccline);margin-left:19px}.cy-go{padding:7px}.cy-go button{width:100%}.cy-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:17px 0}.cy-stat{background:var(--ccpanel);border:1px solid var(--ccline);border-radius:21px;padding:14px}.cy-stat small{font-size:10px;color:var(--ccmut)}.cy-stat b{display:block;font-size:19px;margin-top:3px}.cy-sec{display:flex;justify-content:space-between;align-items:center;margin:27px 0 11px}.cy-sec h2{font-size:18px;letter-spacing:-.5px;margin:0}.cy-sec span{font-size:11px;color:var(--ccmut)}.cy-trip{background:var(--ccpanel);border:1px solid var(--ccline);border-radius:25px;padding:17px;margin-bottom:10px}.cy-time{font-size:11px;color:var(--ccmut);font-weight:700}.cy-route{display:grid;grid-template-columns:15px 1fr auto;gap:12px;margin:12px 0}.cy-line2{display:flex;flex-direction:column;align-items:center}.cy-line2 i{width:7px;height:7px;border:1.7px solid var(--ccink);border-radius:50%}.cy-line2 i:last-child{border-color:var(--ccred);background:var(--ccred)}.cy-line2 b{width:1px;background:var(--ccline);flex:1;margin:4px 0}.cy-place{font-weight:700;font-size:16px;line-height:1.2}.cy-place+ .cy-place{margin-top:14px}.cy-price{text-align:right;font-size:18px;font-weight:800}.cy-meta{display:flex;gap:6px;flex-wrap:wrap;color:var(--ccmut);font-size:10px}.cy-meta span{background:var(--ccbg);border-radius:999px;padding:6px 9px}.cy-actions{display:flex;gap:8px;margin-top:13px}.cy-actions>*{flex:1}.cy-live{background:#111;color:#fff;border-radius:29px;padding:8px;overflow:hidden;margin-top:16px}.cy-live .map-box{height:245px;border:0;border-radius:23px;margin:0}.cy-live-info{padding:14px 11px}.cy-live-info small{color:#aaa}.cy-live-info b{display:block;font-size:20px;margin-top:2px}.cy-darkhero{background:#111;color:#fff;border-radius:29px;padding:22px;margin-top:18px}.cy-darkhero h2{font-size:27px;letter-spacing:-1px;margin:0 0 6px}.cy-darkhero p{color:#b4b5b9;margin:0}.cy-darkhero .pri{background:#fff!important;color:#111!important;margin-top:16px}.cy-metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:14px 0}.cy-metric{background:var(--ccpanel);border:1px solid var(--ccline);border-radius:20px;padding:12px}.cy-metric small{font-size:9px;color:var(--ccmut)}.cy-metric b{display:block;font-size:18px;margin-top:2px}.cy-profile{background:#111;color:#fff;border-radius:29px;padding:22px;margin-top:18px}.cy-avatar{width:58px;height:58px;border-radius:50%;background:#2a2b2e;overflow:hidden;display:grid;place-items:center}.cy-avatar img{width:100%;height:100%;object-fit:cover}.cy-name{font-size:27px;font-weight:760;letter-spacing:-1px;margin-top:14px}.cy-profile .sub{color:#aaa!important}.cy-pgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px}.cy-pgrid div{background:#202124;border-radius:17px;padding:11px}.cy-pgrid small{display:block;color:#aaa;font-size:9px}.cy-pgrid b{font-size:16px}
+</style>
+</head>
+<body>
+<div class="app" id="app"></div>
+<div id="toast" hidden></div>
+
+<div id="ob" class="ob">
+  <button class="skip" id="obskip">Passer</button>
+  <div class="track" id="obtrack">
+    <section class="sl"><img src="https://placehold.co/480x800/15161b/ffffff?text=Voyagez+ensemble" alt=""><div class="otx"><h2>Voyagez ensemble.</h2><p>Trouvez un trajet en voiture ou en moto, près de chez vous ou entre villes.</p></div></section>
+    <section class="sl"><img src="https://placehold.co/480x800/15161b/ffffff?text=Sans+commission" alt=""><div class="otx"><h2>Gagnez du temps, sans commission.</h2><p>Le conducteur fixe son prix. Vous payez directement, sans frais cachés.</p></div></section>
+    <section class="sl"><img src="https://placehold.co/480x800/15161b/ffffff?text=En+toute+confiance" alt=""><div class="otx"><h2>Voyagez en confiance.</h2><p>Conducteurs vérifiés, suivi du trajet en direct et bouton SOS.</p></div></section>
+  </div>
+  <div class="obar"><div class="dots"><i class="on"></i><i></i><i></i></div><button class="pri full" id="obnext">Suivant</button></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script>
+(function(){
+  try{
+    var th=localStorage.getItem("trajet_theme");
+    if(th==="dark"||th==="light")document.documentElement.setAttribute("data-theme",th);
+  }catch(e){}
+  if('serviceWorker' in navigator){
+    var swCode = "const CACHE_NAME = 'trajet-cache-v4';\n" +
+      "const ASSETS = ['/', '/index.html', 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js', 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css', 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js', 'https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap'];\n" +
+      "self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(ASSETS)).then(() => self.skipWaiting())); });\n" +
+      "self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(keys => Promise.all(keys.map(k => { if(k !== CACHE_NAME) return caches.delete(k); }))).then(() => self.clients.claim())); });\n" +
+      "self.addEventListener('fetch', e => { if (e.request.method !== 'GET') return; e.respondWith(caches.match(e.request).then(cached => cached || fetch(e.request).then(res => { if(res.status === 200 && res.type === 'basic') { var rClone = res.clone(); caches.open(CACHE_NAME).then(cache => cache.put(e.request, rClone)); } return res; }).catch(() => caches.match('/index.html')))); });\n";
+    var blob = new Blob([swCode], {type: 'application/javascript'});
+    navigator.serviceWorker.register(URL.createObjectURL(blob)).catch(function(){});
+  }
+})();
+window.addEventListener("load",function(){var l=document.getElementById("fontcss");if(l)l.media="all"});
+
+var $=function(i){return document.getElementById(i)},
+    esc=function(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})};
+
+var D={profiles:[],user_roles:[],vehicles:[],driver_documents:[],trips:[],bookings:[],reports:[],activity_log:[],sos_alerts:[],ads:[],notifs:[],password_resets:[],scores:{},taken:{},pos:{},rr:[]},
+    PV={},
+    S={u:null,tab:"",sub:"",sel:0,q:{f:"",t:"",d:"",v:"all"},auth:"in",adm:0,rr:"passager",at:"docs",pol:0,del:0,pp:"",sf:0,ce:0};
+
+var DN={permis:"Permis de conduire",grise:"Carte grise",assur:"Assurance du véhicule",visite:"Visite technique"};
+var TABS={passager:["search","res","prof"],conducteur:["req","mine","pub","prof"],admin:["adm","prof"]},ALL=["notif","priv","cgu"];
+var LBL={search:"Rechercher",res:"Réservations",prof:"Profil",req:"Demandes",mine:"Trajets",pub:"Publier",adm:"Admin"};
+var TAB_IC={search:"car",res:"doc",prof:"star",req:"bell",mine:"pin",pub:"plus",adm:"shield"};
+var LJ=["Lun","Mar","Mer","Jeu","Ven","Sam","Dim"];
+var MOT=["Comportement agressif ou irrespectueux","Retard ou absence répétés","Conduite dangereuse","Arnaque ou prix non respecté","Harcèlement","Autre"];
+
+var IC={
+  hist:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+  help:'<path d="M4 14v-2a8 8 0 0116 0v2"/><rect x="3" y="13" width="4" height="6" rx="2"/><rect x="17" y="13" width="4" height="6" rx="2"/><path d="M19 19c0 1.6-2 2-5 2"/>',
+  pin:'<path d="M12 21s7-6.2 7-11a7 7 0 10-14 0c0 4.8 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/>',
+  gear:'<circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/>',
+  shield:'<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/>',
+  cash:'<rect x="3" y="7" width="18" height="10" rx="2"/><circle cx="12" cy="12" r="2.5"/>',
+  info:'<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/>',
+  home:'<path d="M4 11l8-7 8 7v9H4z"/>',
+  brief:'<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5h6v2"/>',
+  school:'<path d="M2 9l10-5 10 5-10 5z"/><path d="M6 11v5c0 1 3 3 6 3s6-2 6-3v-5"/>',
+  star:'<path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"/>',
+  cam:'<path d="M4 8h3l2-2h6l2 2h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>',
+  chev:'<path d="M9 6l6 6-6 6"/>',
+  car:'<path d="M5 16V12l2-5h10l2 5v4"/><path d="M3 16h18"/><circle cx="8" cy="17" r="1.5"/><circle cx="16" cy="17" r="1.5"/>',
+  moto:'<circle cx="6" cy="17" r="3"/><circle cx="18" cy="17" r="3"/><path d="M6 17h3l3-6h4l3 3h2"/><path d="M9 11l3-4h3"/>',
+  key:'<circle cx="8" cy="14" r="4"/><path d="M11 11l8-8M16 6l3 3"/>',
+  out:'<path d="M9 4H5v16h4M16 8l4 4-4 4M20 12H9"/>',
+  doc:'<path d="M6 3h9l4 4v14H6z"/><path d="M9 12h6M9 16h6"/>',
+  bell:'<path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/>',
+  plus:'<circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/>',
+  check:'<path d="M20 6L9 17l-5-5"/>',
+  clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/>',
+  alert:'<path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><path d="M12 9v4M12 17h.01"/>',
+  mic:'<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 10a7 7 0 0014 0M12 18v3"/>',
+  swap:'<path d="M7 16V4m0 0L3 8m4-4l4 4M17 8v12m0 0l4-4m-4 4l-4-4"/>',
+  shield_ok:'<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/>'
+};
+function ico(n,s,c){return '<svg viewBox="0 0 24 24" width="'+(s||22)+'" height="'+(s||22)+'" fill="none" stroke="'+(c||"currentColor")+'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+(IC[n]||"")+'</svg>'}
+
+var ILL={
+  car:'<svg viewBox="0 0 120 80"><ellipse cx="60" cy="69" rx="46" ry="5" fill="rgba(0,0,0,.08)"/><path d="M14 56c0-8 4-12 12-14l12-14c3-3 6-4 10-4h22c5 0 8 1 11 4l11 13c8 1 14 4 14 12v6H14z" fill="#fff" stroke="#d9dce2" stroke-width="2"/><path d="M44 30h18v12H36zM66 30h13l11 12H66z" fill="#cfe3f6"/><circle cx="36" cy="60" r="9" style="fill:var(--ink)"/><circle cx="36" cy="60" r="3.5" fill="#9aa0ad"/><circle cx="90" cy="60" r="9" style="fill:var(--ink)"/><circle cx="90" cy="60" r="3.5" fill="#9aa0ad"/><rect x="8" y="48" width="6" height="6" rx="2" fill="#e8383b"/></svg>',
+  moto:'<svg viewBox="0 0 120 80"><ellipse cx="60" cy="72" rx="46" ry="4" fill="rgba(0,0,0,.08)"/><circle cx="26" cy="58" r="13" fill="none" style="stroke:var(--ink)" stroke-width="6"/><circle cx="94" cy="58" r="13" fill="none" style="stroke:var(--ink)" stroke-width="6"/><path d="M26 58l18-22h24l14 22M58 36l-6-14h-10M72 36l8-14h10" fill="none" stroke="#9aa0ad" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><rect x="46" y="28" width="26" height="10" rx="5" fill="#e8383b"/><rect x="36" y="40" width="30" height="8" rx="4" style="fill:var(--ink)"/></svg>',
+  price:'<svg viewBox="0 0 120 80"><rect x="10" y="12" width="100" height="52" rx="14" fill="#e8383b"/><path d="M92 64l10 12-18-8z" fill="#e8383b"/><text x="60" y="46" text-anchor="middle" font-family="Plus Jakarta Sans,sans-serif" font-weight="800" font-size="20" fill="#fff">1 500 F</text></svg>',
+  ticket:'<svg viewBox="0 0 120 80"><path d="M12 18h96v16a8 8 0 000 16v16H12V50a8 8 0 000-16z" fill="#fff" stroke="#d9dce2" stroke-width="2"/><path d="M80 20v50" stroke="#d9dce2" stroke-width="2" stroke-dasharray="4 4"/><circle cx="96" cy="44" r="10" fill="#16804d"/><path d="M91 44l4 4 7-8" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><rect x="24" y="32" width="40" height="7" rx="3.5" fill="#e8383b"/><rect x="24" y="46" width="30" height="7" rx="3.5" fill="#cfd3da"/></svg>',
+  shield:'<svg class="bg" viewBox="0 0 120 140"><path d="M60 8l46 18v38c0 34-20 56-46 68C34 120 14 98 14 64V26z" fill="#9fb8e6" opacity=".55"/><path d="M60 20l34 13v30c0 26-15 42-34 52-19-10-34-26-34-52V33z" fill="#fff" opacity=".9"/><path d="M45 66l11 11 21-24" fill="none" stroke="#1d4c9c" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+};
+
+function today(){return new Date().toISOString().slice(0,10)}
+function tomorrow(){var d=new Date();d.setDate(d.getDate()+1);return d.toISOString().slice(0,10)}
+function pf(id){return D.profiles.filter(function(p){return p.id==id})[0]}
+function rl(id){var r=D.user_roles.filter(function(x){return x.uid==id})[0];return r&&r.role}
+function me(){return S.u&&pf(S.u)}
+function role(){return rl(S.u)}
+function tr(id){return D.trips.filter(function(t){return t.id==id})[0]}
+function vh(id){return D.vehicles.filter(function(v){return v.uid==id})[0]}
+function bk(id){return D.bookings.filter(function(b){return b.id==id})[0]}
+function own(t){return t&&t.driver==S.u&&role()=="conducteur"}
+function taken(id){return D.taken[id]||0}
+function cl(s){return String(s).replace(/\D/g,"").slice(-10)}
+function fmt(t){return esc("+225 "+String(t==null?"":t).replace(/(\d\d)(?=\d)/g,"$1 "))}
+function fcfa(n){return Number(n||0).toLocaleString("fr-FR")+" <small>FCFA</small>"}
+function fd(d){return d==today()?"Aujourd’hui":d==tomorrow()?"Demain":d.split("-").reverse().slice(0,2).join("/")}
+function sc(id){return D.scores[id]!=null?D.scores[id]:70}
+function hm(t){return new Date(t).toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})}
+function nk(s){return String(s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().trim()}
+function toast(t){var e=$("toast");e.textContent=t;e.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(function(){e.hidden=true},2800)}
+
+function av(id,l){var p=pf(id);return '<div class="av'+(l?' lg':'')+'">'+(p&&p.photo?'<img src="'+p.photo+'" alt="">':esc(p?p.name.charAt(0):"?"))+'</div>'}
+function vph(id){var v=vh(id);return v&&v.photos.length?'<div class="ph">'+v.photos.map(function(u){return '<img src="'+u+'" alt="Photo du véhicule">'}).join("")+'</div>':''}
+function wkb(id){var p=pf(id),w=p&&p.work;if(!w||rl(id)!="conducteur")return"";return '<span class="badge">'+ico("clock",14)+ (w.t=="quotidien"?"Quotidien"+(w.days&&w.days.length?" · "+w.days.map(function(i){return LJ[i]}).join(" "):""):"Occasionnel")+'</span>'}
+function fb(id){var p=pf(id),k=rl(id)=="conducteur"?p.dv=="verified":p.idv=="ok";return '<span class="badge '+(k?'b-ok':'b-wait')+'">'+(k?ico("check",14):ico("alert",14))+(rl(id)=="conducteur"?(k?"Vérifié":"En vérification"):(k?"Identité vérifiée":"Identité non vérifiée"))+'</span><span class="badge num">'+ico("star",14)+'Fiabilité '+sc(id)+'/100</span>'+wkb(id)}
+function sb(st){var m={attente:["En attente","b-wait","clock"],"acceptée":["Acceptée","b-ok","check"],"refusée":["Refusée","b-red","alert"],"annulée":["Annulée","","alert"],"publié":["Publié","","car"],"en cours":["En cours","b-wait","car"],"terminé":["Terminé","b-ok","check"]}[st]||[st,"","info"];return '<span class="badge '+m[1]+'">'+ico(m[2],14)+m[0]+'</span>'}
+function badge2(s){return '<span class="badge '+({g:"b-ok",a:"b-wait",n:""}[s[1]])+'">'+ico(s[1]=="g"?"check":s[1]=="a"?"clock":"alert",14)+s[0]+'</span>'}
+function up(l,f,k,m,a){return '<div class="up"><span>'+l+'</span><input type="file" data-f="'+f+'"'+(k?' data-k="'+k+'"':'')+(m?' multiple':'')+' accept="'+a+'"></div>'}
+function inp(id,label,val,type,ph,ex){return '<label>'+label+'</label><input id="'+id+'" '+(type?'type="'+type+'" ':'')+'value="'+esc(val==null?"":val)+'" '+(ph?'placeholder="'+ph+'" ':'')+(ex||"")+'>'}
+
+function tripCard(t,btn){
+  var d=pf(t.driver),free=t.seats-taken(t.id);
+  return '<div class="card"><div class="row"><div class="route">'+esc(t.from)+' → '+esc(t.to)+'</div><div class="price">'+fcfa(t.price)+'</div></div>'+
+    '<div class="meta num">'+(t.veh=="Moto"?ico("moto",16):ico("car",16))+' '+t.veh+' · '+fd(t.date)+' à '+t.time+' · '+free+'/'+t.seats+' place'+(free>1?'s':'')+(t.dk!=null?' · à '+dist(t.dk):'')+(t.fcity?' · '+esc(t.fcity):'')+'</div>'+
+    '<div class="row rl" style="margin-bottom:6px">'+av(t.driver)+'<div><b>'+esc(d?d.name:"Conducteur")+'</b><div>'+fb(t.driver)+'</div></div></div>'+(btn||"")+'</div>'
+}
+
+function head(){
+  var m=me(),n=D.notifs.filter(function(x){return x.to==m.id&&!x.r}).length;
+  return '<header><div class="logo">T</div><div class="brand">Trajet<b>.</b></div><span class="role">'+{passager:"Passager",conducteur:"Conducteur",admin:"Admin"}[role()]+'</span><button class="bell" data-a="tab" data-t="notif" aria-label="Notifications">'+ico("bell",20)+(n?'<i>'+n+'</i>':'')+'</button></header>'
+}
+function nav(){
+  return '<nav><div>'+TABS[role()].map(function(t){
+    return '<button data-a="tab" data-t="'+t+'" class="'+(S.tab==t?"on":"")+'">'+ico(TAB_IC[t]||"car",20)+'<span>'+LBL[t]+'</span></button>'
+  }).join("")+'</div></nav>'
+}
+function foot(li){
+  var a1=li?'data-a="tab" data-t="cgu"':'data-a="pol2"',a2=li?'data-a="tab" data-t="priv"':'data-a="pol1"';
+  return '<p style="text-align:center;font-size:12px;color:var(--mut);margin:32px 0 0">© 2026 Digitalk Afrique. Tous droits réservés.<br><a href="#" '+a1+' style="color:var(--mut)">Conditions d’utilisation</a> · <a href="#" '+a2+' style="color:var(--mut)">Confidentialité</a></p>'
+}
+
+function cgu(){return '<h1>Conditions d’utilisation</h1><p class="sub">Dernière mise à jour : novembre 2026</p><div class="card"><p><b>1. Objet.</b> Trajet, éditée par Digitalk Afrique, met en relation des conducteurs et des passagers en Côte d’Ivoire. Trajet est un service d’intermédiation : il n’est pas transporteur.</p><p><b>2. Gratuité.</b> Le service est gratuit et sans commission. Le prix est fixé par le conducteur et réglé directement entre le conducteur et le passager.</p><p><b>3. Sécurité.</b> Le bouton SOS prévient l’équipe Trajet et facilite l’appel de votre contact d’urgence.</p><p><b>4. Droit applicable.</b> Ces conditions sont soumises au droit ivoirien.</p></div>'}
+function pol(){return '<h1>Confidentialité</h1><div class="card"><p>Trajet est gratuit et sans commission. Le paiement se fait directement entre conducteur et passager, jamais dans l’application.</p><p><b>Données collectées :</b> nom, numéro +225, photo, trajets et réservations. Elles servent uniquement au fonctionnement du service.</p></div>'}
+
+function rpForm(){var w=pf(S.rp.who);return '<button class="link" data-a="rpx">'+ico("chev",16)+' Annuler</button><h1>Signaler</h1><p class="sub">Signalement concernant <b>'+esc(w?w.name:"?")+'</b>. L’équipe Trajet lira votre message et décidera des suites.</p><label>Motif</label><select id="rpm">'+MOT.map(function(x){return '<option>'+x+'</option>'}).join("")+'</select><label>Détails</label><textarea id="rpt" rows="4" maxlength="400" placeholder="Expliquez ce qui s’est passé…"></textarea><button class="pri full" style="margin-top:16px" data-a="rps">Envoyer le signalement</button>'}
+
+function workCard(m){var w=m.work||{t:"occasionnel",days:[]};return '<div class="card"><b>Mon activité</b><p class="sub" style="font-size:13px;margin:4px 0 10px">Les passagers voient si vous roulez au quotidien ou de façon occasionnelle.</p><div class="seg">'+[["occasionnel","Occasionnel"],["quotidien","Quotidien"]].map(function(x){return '<button data-a="wk" data-v="'+x[0]+'" class="'+(w.t==x[0]?"on":"")+'">'+x[1]+'</button>'}).join("")+'</div>'+(w.t=="quotidien"?'<label>Jours de travail</label><div class="seg">'+LJ.map(function(d,i){return '<button style="padding:10px 2px" data-a="wd" data-id="'+i+'" class="'+((w.days||[]).indexOf(i)>-1?"on":"")+'">'+d+'</button>'}).join("")+'</div>':'')+'</div>'}
+function sosCard(m){var s=m.sos;return '<div class="card"><b>Numéro d’urgence (SOS)</b><p class="sub" style="font-size:13px;margin:4px 0 0">Le proche à prévenir en cas d’alerte. Visible uniquement par vous et l’équipe Trajet.</p><label>Nom du contact</label><input id="sosn" placeholder="Maman, frère…" value="'+esc(s?s.name:"")+'"><label>Numéro</label><div class="tel"><b>+225</b><input id="sost" type="tel" inputmode="numeric" placeholder="07 00 00 00 00" value="'+esc(s?s.tel:"")+'"></div><div class="btns"><button class="pri" data-a="sossave">Enregistrer</button>'+(s?'<button class="out" data-a="sosdel">Retirer</button>':'')+'</div></div>'}
+function secretCard(m){return '<div class="card"><b>Mot secret</b><p class="sub" style="font-size:13px;margin:4px 0 0">'+(m.hs?'<span class="badge b-ok">'+ico("check",14)+'Défini</span> Il prouve que c’est bien toi si tu oublies ton mot de passe.':'<span class="badge b-wait">'+ico("clock",14)+'À définir</span> Choisis un mot de 5 ou 6 lettres pour récupérer ton compte.')+'</p>'+(m.hs?'<label>Ancien mot secret</label><input id="so" maxlength="6" autocomplete="off" autocapitalize="none">':'')+'<label>'+(m.hs?'Nouveau mot secret':'Mot secret')+' (5 ou 6 lettres)</label><input id="sn2" maxlength="6" autocomplete="off" autocapitalize="none" placeholder="ex. soleil"><button class="pri full" style="margin-top:12px" data-a="secset">Enregistrer</button></div>'}
+
+function vAuth(){
+  if(S.pol)return '<main><button class="link" data-a="pol0">'+ico("chev",16)+' Retour</button>'+(S.pol==2?cgu():pol())+'</main>';
+  if(S.auth=="fg")return '<header><div class="logo">T</div><div class="brand">Trajet<b>.</b></div></header><main><button class="link" data-a="mode" data-v="in">'+ico("chev",16)+' Retour</button><h1>Mot de passe oublié</h1><p class="sub">Entrez votre numéro. L’équipe Trajet vous communiquera un nouveau mot de passe.</p><label>Numéro de téléphone</label><div class="tel"><b>+225</b><input id="ft" type="tel" inputmode="numeric" placeholder="07 00 00 00 00"></div><label>Mot secret</label><input id="fw" maxlength="6" autocomplete="off" autocapitalize="none" placeholder="Le mot choisi à l’inscription"><button class="pri full" style="margin-top:18px" data-a="forgot">Envoyer la demande</button>'+(S.fgdone?'<div class="note" style="margin-top:16px">Demande envoyée. Si ce numéro a un compte, l’équipe Trajet vous contactera.</div>':'')+'</main>';
+  var up=S.auth=="up";
+  return '<header><div class="logo" data-a="tap">T</div><div class="brand">Trajet<b>.</b></div></header><main><div class="ad bn"><img src="https://placehold.co/400x130/e8383b/ffffff?text=Trajet+-+Covoiturage+sans+commission" alt="Trajet"></div><div class="seg">'+[["in","Connexion"],["up","Inscription"]].map(function(x){return '<button data-a="mode" data-v="'+x[0]+'" class="'+(S.auth==x[0]?"on":"")+'">'+x[1]+'</button>'}).join("")+'</div>'+
+    (up?'<label>Je suis</label><div class="seg">'+[["passager","Passager"],["conducteur","Conducteur"]].map(function(x){return '<button data-a="role" data-v="'+x[0]+'" class="'+(S.rr==x[0]?"on":"")+'">'+x[1]+'</button>'}).join("")+'</div><p class="sub" style="margin:8px 0 0;font-size:13px">Un compte = un seul rôle.</p><label>Nom complet</label><input id="sn" placeholder="Prénom et nom" autocomplete="name">':'')+
+    (S.adm&&!up?'<label>E-mail</label><input id="lt" type="email" autocomplete="username" placeholder="nom@exemple.com">':'<label>Numéro de téléphone</label><div class="tel"><b>+225</b><input id="'+(up?"st":"lt")+'" type="tel" inputmode="numeric" placeholder="07 00 00 00 00"></div>')+
+    '<label>Mot de passe'+(up?' (6 à 8 chiffres)':'')+'</label><input id="'+(up?"sp":"lp")+'" type="password"'+(S.adm&&!up?'':' inputmode="numeric" maxlength="8"')+' placeholder="••••••">'+
+    (up?'<label>Mot secret (5 ou 6 lettres)</label><input id="ss" maxlength="6" autocomplete="off" autocapitalize="none" placeholder="ex. soleil"><div class="chk"><input type="checkbox" id="sc"><label for="sc">J’accepte les <a href="#" data-a="pol2" style="color:var(--red)">conditions d’utilisation</a> et la <a href="#" data-a="pol1" style="color:var(--red)">politique de confidentialité</a></label></div>':'')+
+    '<button class="pri full" style="margin-top:18px" data-a="'+(up?"reg":"login")+'">'+(up?"Créer mon compte":"Se connecter")+'</button>'+(up?'':'<button class="link full" style="margin-top:8px" data-a="fg">Mot de passe oublié ?</button>')+foot()+'</main>'
+}
+
+var ob=$("ob"),otk=$("obtrack"),dts=ob.querySelectorAll(".dots i"),obi=0;
+function obUpd(){Array.prototype.forEach.call(dts,function(d,i){d.className=i==obi?"on":""});$("obnext").textContent=obi==2?"Commencer":"Suivant"}
+function obDone(){ob.hidden=true;try{localStorage.setItem("trajet_intro","1")}catch(e){}}
+otk.addEventListener("scroll",function(){var i=Math.round(otk.scrollLeft/otk.clientWidth);if(i!=obi){obi=i;obUpd()}});
+$("obnext").onclick=function(){if(obi<2)otk.scrollTo({left:otk.clientWidth*(obi+1),behavior:"smooth"});else obDone()};
+$("obskip").onclick=obDone;
+try{if(localStorage.getItem("trajet_intro")=="1")ob.hidden=true}catch(e){}
+
+function adHtml(){
+  var l=D.ads.filter(function(x){return x.on});
+  if(!l.length)return'<div class="ad bn"><img src="https://placehold.co/400x130/e8383b/ffffff?text=Covoiturage+sans+commission+en+Cote+d+Ivoire" alt="Trajet"></div>';
+  var x=l[(S.ai||0)%l.length];
+  return '<div class="ad'+(x.i?'':' tx')+'">'+(x.i?'<img src="'+x.i+'" alt="">':'')+'<small>Annonce</small>'+(x.t||x.x?'<div class="t"><b style="font-size:18px">'+esc(x.t)+'</b><div style="font-size:14px">'+esc(x.x)+'</div></div>':'')+'</div>'
+}
+
+function hav(a,b,c,d){var R=6371,x=(c-a)*Math.PI/180,y=(d-b)*Math.PI/180,z=Math.sin(x/2)*Math.sin(x/2)+Math.cos(a*Math.PI/180)*Math.cos(c*Math.PI/180)*Math.sin(y/2)*Math.sin(y/2);return 2*R*Math.asin(Math.sqrt(z))}
+function gps(hi){return new Promise(function(res){if(!navigator.geolocation)return res(null);navigator.geolocation.getCurrentPosition(function(p){res({lat:p.coords.latitude,lng:p.coords.longitude,acc:p.coords.accuracy,speed:p.coords.speed})},function(){res(null)},{enableHighAccuracy:!!hi,timeout:12000,maximumAge:5000})})}
+function cityOf(a){return a.city||a.town||a.village||a.municipality||a.county||a.state_district||""}
+async function geo2(q){try{var r=await fetch("https://nominatim.openstreetmap.org/search?format=json&limit=1&addressdetails=1&countrycodes=ci&q="+encodeURIComponent(q));var j=await r.json();if(!j[0])return null;return{lat:+j[0].lat,lng:+j[0].lon,city:cityOf(j[0].address||{})}}catch(e){return null}}
+async function rev(lat,lng){try{var r=await fetch("https://nominatim.openstreetmap.org/reverse?format=json&zoom=10&addressdetails=1&lat="+lat+"&lon="+lng);var j=await r.json();return cityOf(j.address||{})}catch(e){return ""}}
+function geoQ(txt,ms2){var p=geo2(txt);return Promise.race([p,new Promise(function(r){setTimeout(function(){r(null)},ms2||2000)})]).then(function(r){return{r:r,p:p}})}
+
+var TRK={id:null,w:null,last:0};
+function startTrack(tid){if(TRK.id==tid||!navigator.geolocation)return;stopTrack();TRK.id=tid;TRK.w=navigator.geolocation.watchPosition(function(p){var n=Date.now();if(n-TRK.last<5000)return;TRK.last=n;SB.from("trip_positions").upsert({trip_id:tid,lat:p.coords.latitude,lng:p.coords.longitude,speed:p.coords.speed,updated_at:new Date().toISOString()}).then(function(){})},function(){toast("Active la localisation")},{enableHighAccuracy:true,maximumAge:3000,timeout:20000})}
+function stopTrack(){if(TRK.w!=null&&navigator.geolocation)navigator.geolocation.clearWatch(TRK.w);TRK.w=null;TRK.id=null}
+function resumeTrack(){var t=D.trips.filter(function(x){return x.driver==S.u&&x.st=="en cours"})[0];if(t&&role()=="conducteur")startTrack(t.id);else stopTrack()}
+function ago(a){var s=Math.max(0,Math.round((Date.now()-a)/1000));return s<60?"il y a "+s+" s":"il y a "+Math.round(s/60)+" min"}
+function prog(t){var p=D.pos[t.id];if(!p||t.tlat==null||t.flat==null)return null;var tot=hav(t.flat,t.flng,t.tlat,t.tlng);if(tot<0.05)return null;var rem=hav(p.lat,p.lng,t.tlat,t.tlng);return{p:Math.max(0,Math.min(1,1-rem/tot)),rem:rem,at:p.at,lat:p.lat,lng:p.lng}}
+function dist(r){return r<1?Math.round(r*1000)+" m":r.toFixed(1)+" km"}
+
+var activeLeafletMap = null;
+function initLiveMap(tId, flat, flng, tlat, tlng, curLat, curLng, isDriver) {
+  var el = document.getElementById("leafletMap_" + tId);
+  if (!el || typeof L === 'undefined') return;
+  if (activeLeafletMap) {
+    try { activeLeafletMap.remove(); } catch(e){}
+    activeLeafletMap = null;
+  }
+  var centerLat = curLat != null ? curLat : (flat != null ? flat : 5.3600);
+  var centerLng = curLng != null ? curLng : (flng != null ? flng : -4.0083);
+  var map = L.map(el, {zoomControl: false}).setView([centerLat, centerLng], 13);
+  activeLeafletMap = map;
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution: '© OpenStreetMap'
+  }).addTo(map);
+
+  var markersGroup = [];
+  if (flat != null && flng != null) {
+    L.marker([flat, flng]).addTo(map).bindPopup("<b>Départ:</b> " + esc(tr(tId).from));
+    markersGroup.push([flat, flng]);
+  }
+  if (tlat != null && tlng != null) {
+    L.marker([tlat, tlng]).addTo(map).bindPopup("<b>Arrivée:</b> " + esc(tr(tId).to));
+    markersGroup.push([tlat, tlng]);
+  }
+  if (curLat != null && curLng != null) {
+    var redIcon = L.divIcon({
+      className: 'custom-live-car',
+      html: '<div style="background:#e8383b;color:#fff;border-radius:50%;width:32px;height:32px;display:grid;place-items:center;font-size:16px;box-shadow:0 4px 12px rgba(232,56,59,0.5);border:2px solid #fff"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 16V12l2-5h10l2 5v4"/><path d="M3 16h18"/><circle cx="8" cy="17" r="1.5"/><circle cx="16" cy="17" r="1.5"/></svg></div>',
+      iconSize: [32, 32],
+      iconAnchor: [16, 16]
+    });
+    L.marker([curLat, curLng], {icon: redIcon}).addTo(map).bindPopup("<b>Position en direct</b>");
+    markersGroup.push([curLat, curLng]);
+  }
+  if (markersGroup.length > 1) {
+    try { map.fitBounds(L.latLngBounds(markersGroup), {padding: [30, 30]}); } catch(e){}
+  }
+}
+
+function live(t){
+  // La carte interactive et le suivi s'affichent STRICTEMENT UNIQUEMENT lorsque le trajet est en cours
+  if (t.st !== "en cours") return '';
+
+  var g = prog(t), info = "";
+  info = g ? "À " + dist(g.rem) + " de l’arrivée · " + ago(g.at) : "En attente de la position du conducteur…";
+  
+  setTimeout(function(){
+    var curLat = g ? g.lat : t.flat;
+    var curLng = g ? g.lng : t.flng;
+    initLiveMap(t.id, t.flat, t.flng, t.tlat, t.tlng, curLat, curLng, t.driver == S.u);
+  }, 100);
+
+  return '<div class="rt"><span>'+ico("pin",16)+' '+esc(t.from)+'</span><span>'+esc(t.to)+' '+ico("flag",16)+'</span></div>'+
+         '<div id="leafletMap_'+t.id+'" class="map-box"></div>'+
+         (info?'<div class="meta" id="lvt'+t.id+'" style="margin:2px 0 0">'+info+'</div>':'');
+}
+
+function cmpT(a,b){return (a.date+a.time).localeCompare(b.date+b.time)}
+function cityChips(list,cur,act){var m={};list.forEach(function(x){var c=(x.fcity||"").trim();if(c){var k=nk(c);m[k]=m[k]||{n:c,k:k,c:0};m[k].c++}});var a=Object.keys(m).map(function(k){return m[k]}).sort(function(x,y){return y.c-x.c});
+return '<div class="chips"><button data-a="'+act+'" data-v="" class="'+(!cur?"on":"")+'">Toutes</button>'+a.map(function(c){return '<button data-a="'+act+'" data-v="'+esc(c.k)+'" class="'+(cur==c.k?"on":"")+'">'+esc(c.n)+' ('+c.c+')</button>'}).join("")+'</div>'}
+function sortSeg(opts,cur,act){return '<div class="seg">'+opts.map(function(o){return '<button data-a="'+act+'" data-v="'+o[0]+'" class="'+(cur==o[0]?"on":"")+'">'+o[1]+'</button>'}).join("")+'</div>'}
+
+function filtBar(){var av2=D.trips.filter(function(t){return t.st=="publié"&&t.seats-taken(t.id)>0}),m=me(),so=S.sort||(m.lat!=null?"prox":"heure");return '<label>Ville de départ</label>'+cityChips(av2,S.city||"","cty")+'<label>Trier par</label><div class="chips">'+[["prox","📍 Proximité"],["heure","🕒 Heure"],["prix","💰 Prix"]].map(function(o){return '<button data-a="srt" data-v="'+o[0]+'" class="'+(so==o[0]?"on":"")+'">'+o[1]+'</button>'}).join("")+'</div>'}
+
+function tl(){
+  var q=S.q,m=me(),ck=S.city||"",so=S.sort||(m&&m.lat!=null?"prox":"heure");
+  var l=D.trips.filter(function(t){
+    return t.st=="publié"&&t.seats-taken(t.id)>0&&
+      (!q.f||nk(t.from).indexOf(nk(q.f))>-1)&&
+      (!q.t||nk(t.to).indexOf(nk(q.t))>-1)&&
+      (!q.d||t.date==q.d)&&
+      (q.v=="all"||t.veh==q.v)&&
+      (!ck||nk(t.fcity)==ck||nk(t.from)==ck)
+  }).map(function(t){var o=Object.assign({},t);o.dk=(m&&m.lat!=null&&t.flat!=null)?hav(m.lat,m.lng,t.flat,t.flng):null;return o});
+  l.sort(so=="prix"?function(a,b){return a.price-b.price||cmpT(a,b)}:so=="prox"?function(a,b){return(a.dk==null?1e9:a.dk)-(b.dk==null?1e9:b.dk)||cmpT(a,b)}:cmpT);
+  return l.length?'<p class="sub num">'+l.length+' trajet(s) disponible(s)</p>'+l.map(function(t){return tripCard(t,'<button class="pri full" data-a="open" data-id="'+t.id+'">Voir le trajet</button>')}).join(""):'<div class="empty">Aucun trajet trouvé. Essayez une autre ville ou proposez votre trajet.</div>'
+}
+
+function vTripDetail(){
+  var m=me(),t=tr(S.sel),v=vh(t.driver),b=D.bookings.filter(function(x){return x.trip==t.id&&x.uid==m.id&&(x.st=="attente"||x.st=="acceptée")})[0];
+  var l=t.seats-taken(t.id),n=Math.min(Math.max(1,S.pl||1),l);
+  return '<button class="link" data-a="sub" data-s="">'+ico("chev",16)+' Retour aux trajets</button>'+tripCard(t)+
+    (v?'<div class="card"><b>Véhicule</b><div class="meta" style="margin:4px 0 0">'+esc(v.type)+' · '+esc(v.model||"")+'</div>'+vph(t.driver)+'</div>':'')+
+    (b?'<div class="card"><b>Votre réservation</b><div style="margin-top:8px">'+sb(b.st)+'</div></div>':
+      '<div class="card"><div class="row"><b>Nombre de places</b><span class="row rl"><button data-a="plm" style="min-height:38px;padding:6px 14px">−</button><b class="num" style="min-width:28px;text-align:center;font-size:18px">'+n+'</b><button data-a="plp" style="min-height:38px;padding:6px 14px">+</button></span></div><div class="meta num" style="margin:10px 0 0">'+l+' disponible(s) · Total : <b>'+Number(n*t.price).toLocaleString("fr-FR")+' FCFA</b></div></div><button class="pri full" data-a="book" data-id="'+t.id+'">Réserver '+n+' place'+(n>1?'s':'')+'</button>')+
+    '<p class="sub" style="margin-top:10px;font-size:13px;text-align:center">Vous payez le conducteur directement, en main propre.</p>'
+}
+
+function locBar(m){return '<div class="lbar"><div class="lt1">Ma position</div><div class="lt2">'+ico("pin",20)+' '+esc(m.city||"Non définie")+'</div>'+(S.ce?'<div class="btns"><input id="cx" value="'+esc(m.city||"")+'" placeholder="Abidjan, Bouaké…" maxlength="80"><button class="pri" style="flex:none" data-a="cityx">OK</button></div>':'<div class="btns"><button data-a="locm">Modifier</button><button class="pri" data-a="loc">'+(m.city?"Actualiser GPS":"Me localiser")+'</button></div>')+'</div>'}
+
+function tiles(){
+  var n=D.bookings.filter(function(b){var t=tr(b.trip);return b.uid==S.u&&(b.st=="attente"||b.st=="acceptée")&&t&&t.st!="terminé"}).length;
+  return '<div class="tiles">'+
+    '<button class="tile'+(S.q.v=="Voiture"?" on":"")+'" data-a="tile" data-v="Voiture">'+ILL.car+'<b>Voiture</b><small>Entre villes</small></button>'+
+    '<button class="tile'+(S.q.v=="Moto"?" on":"")+'" data-a="tile" data-v="Moto">'+ILL.moto+'<b>Moto</b><small>Entre quartiers</small></button>'+
+    '<button class="tile" data-a="rqo">'+ILL.price+'<b>Proposer</b><small>Mon trajet, mon prix</small></button>'+
+    '<button class="tile" data-a="tab" data-t="res">'+ILL.ticket+'<b>Réservations</b><small class="num">'+(n?n+" en cours":"Mes trajets")+'</small></button>'+
+  '</div>'
+}
+
+function searchForm(){
+  return '<div class="card" style="margin-top:12px">'+
+    '<label style="margin-top:0">Départ</label><input id="qf" data-s="1" placeholder="Nimbo, Cocody, Abidjan…" value="'+esc(S.q.f)+'">'+
+    '<div class="swap-wrap"><label>Destination</label><input id="qt" data-s="1" placeholder="INFAS, Yopougon, Bouaké…" value="'+esc(S.q.t)+'"><button class="swap-btn" data-a="qswap" title="Inverser">'+ico("swap",18)+'</button></div>'+
+    '<label>Date</label><div class="chips" style="margin-bottom:6px"><button data-a="qdate" data-v="" class="'+(!S.q.d?"on":"")+'">Toutes</button><button data-a="qdate" data-v="'+today()+'" class="'+(S.q.d==today()?"on":"")+'">Aujourd’hui</button><button data-a="qdate" data-v="'+tomorrow()+'" class="'+(S.q.d==tomorrow()?"on":"")+'">Demain</button></div><input type="date" id="qd" data-s="1" value="'+S.q.d+'">'+
+    '<label>Véhicule</label><div class="seg">'+[["all","Tous"],["Voiture","Voiture"],["Moto","Moto"]].map(function(x){return '<button data-a="veh" data-v="'+x[0]+'" class="'+(S.q.v==x[0]?"on":"")+'">'+x[1]+'</button>'}).join("")+'</div>'+
+  '</div>'
+}
+
+function recents(m){var seen={},out=[],push=function(p,l){var k=nk(p);if(!p||seen[k]||out.length>=3)return;seen[k]=1;out.push({p:p,l:l})};(m.places||[]).forEach(function(x){seen[nk(x.p)]=1});D.bookings.filter(function(b){return b.uid==m.id}).slice().reverse().forEach(function(b){var t=tr(b.trip);if(t)push(t.to,t.to)});D.rr.filter(function(r){return r.uid==m.id}).slice().reverse().forEach(function(r){push(r.to,r.to)});return out}
+function placesRows(m){var ic={Maison:"home",Bureau:"brief","École":"school",Autre:"pin"},rows=(m.places||[]).map(function(x){return '<button class="prow" data-a="goto" data-p="'+esc(x.p)+'"><span class="pi">'+ico(ic[x.l]||"pin",20)+'</span><span><b>'+esc(x.l)+'</b><small>'+esc(x.p)+'</small></span></button>'}).join("")+recents(m).map(function(x){return '<button class="prow" data-a="goto" data-p="'+esc(x.p)+'"><span class="pi">'+ico("hist",20)+'</span><span><b>'+esc(x.l)+'</b><small>Destination récente</small></span></button>'}).join("");return '<div>'+(rows||'')+'<button class="prow" data-a="ppo" data-v="addr"><span class="pi">'+ico("home",20)+'</span><span><b>Ajouter Maison, Bureau…</b><small>Retrouve tes adresses en un geste</small></span></button></div>'}
+function safeBanner(){return '<div class="safe">'+ILL.shield+'<div class="st">OUTILS<br>DE SÉCURITÉ</div><p>Reste en sécurité avec nous</p><div class="chips2"><button data-a="ppo" data-v="sec">Bouton SOS</button><button data-a="ppo" data-v="sec">Contact d’urgence</button><button data-a="ppo" data-v="sec">Partage de position</button><button data-a="ppo" data-v="rel">Fiabilité</button></div></div>'}
+
+function vSearch(){
+  var m=me();
+  if(S.sub=="d"&&tr(S.sel))return vTripDetail();
+  return locBar(m)+'<div id="ad">'+adHtml()+'</div>'+tiles()+
+    '<button class="where" data-a="sfo">'+ico("car",26)+'<b>Où allons-nous ?</b><span class="ico-wrap">'+ico("chev",16,"#fff")+'</span></button>'+
+    (S.sf?searchForm():'')+placesRows(m)+'<h2>Trajets disponibles</h2>'+filtBar()+'<div id="tl">'+tl()+'</div>'+safeBanner()
+}
+
+function rqForm(){var r=S.rq;return '<button class="link" data-a="rqx">'+ico("chev",16)+' Annuler</button><h1>Proposer mon trajet</h1><p class="sub">Indique ton trajet et le montant que tu proposes.</p>'+inp("xf","Départ",r.from,"","Cocody")+inp("xt","Destination",r.to,"","Plateau")+inp("xd","Date",r.date||today(),"date")+inp("xh","Heure de départ",r.time||"07:00","time")+inp("xp","Nombre de places",r.pl||1,"number","","min=\"1\" max=\"6\"")+inp("xa","Montant proposé (FCFA)",r.price||"","number","1500","min=\"0\" step=\"100\"")+inp("xn","Précision (facultatif)",r.note,"","Point de rendez-vous…","maxlength=\"300\"")+'<button class="pri full" style="margin-top:18px" data-a="rqs">Envoyer ma proposition</button>'}
+function rlForm(){var r=S.rl;return '<button class="link" data-a="rlx">'+ico("chev",16)+' Annuler</button><h1>Relancer le trajet</h1><p class="sub">Modifie ce qui change puis publie en un geste.</p>'+inp("yf","Départ",r.from)+'<button class="out full" style="margin-top:10px" data-a="rlswap">'+ico("swap",16)+' Inverser</button>'+inp("yt","Destination",r.to)+inp("yd","Date",r.date||today(),"date")+inp("yh","Heure",r.time,"time")+inp("yp","Places",r.seats,"number","","min=\"1\" max=\"6\"")+inp("yr","Prix (FCFA)",r.price,"number","","min=\"0\" step=\"100\"")+'<button class="pri full" style="margin-top:18px" data-a="rls">Publier maintenant</button>'}
+function shView(){var s=S.sh,e=encodeURIComponent(s.txt),n="225"+String(s.tel).replace(/\D/g,"");return '<button class="link" data-a="shx">'+ico("chev",16)+' Retour</button><h1>Partager ma position</h1><p class="sub">Envoie ce message à '+esc(s.name||"ton contact")+' ('+fmt(s.tel)+').</p><div class="card" style="white-space:pre-wrap;font-size:14.5px">'+esc(s.txt)+'</div><a class="pri" style="display:block;text-align:center;text-decoration:none;color:#fff;background:#1f9d57;border-radius:14px;padding:14px;font-weight:700;margin-bottom:10px" target="_blank" rel="noopener" href="https://wa.me/'+n+'?text='+e+'">Envoyer par WhatsApp</a><a style="display:block;text-align:center;text-decoration:none;color:#fff;background:var(--red);border-radius:14px;padding:14px;font-weight:700;margin-bottom:10px" href="sms:+'+n+'?&body='+e+'">Envoyer par SMS</a><button class="out full" data-a="shcopy">Copier le message</button>'}
+function rqCard(r){var st={ouverte:["En attente d’un conducteur","a"],"acceptée":["Acceptée","g"],"annulée":["Annulée","n"]}[r.st];return '<div class="card"><div class="row"><div class="route">'+esc(r.from)+' → '+esc(r.to)+'</div><div class="price">'+fcfa(r.price)+'</div></div><div class="meta num">'+fd(r.date)+' à '+r.time+' · '+r.pl+' place'+(r.pl>1?'s':'')+(r.note?' · '+esc(r.note):'')+'</div>'+badge2(st)+(r.st=="ouverte"?'<div class="btns"><button class="out" data-a="rqc" data-id="'+r.id+'">Annuler</button></div>':'')+'</div>'}
+
+function vRes(){
+  var m=me(),l=D.bookings.filter(function(b){return b.uid==m.id&&tr(b.trip)}).reverse(),q=D.rr.filter(function(r){return r.uid==m.id}).slice().reverse();
+  return '<h1>Mes réservations</h1><p class="sub">Suivez vos trajets. Une annulation après validation compte comme tardive.</p>'+(m.blk>Date.now()?'<div class="note">Réservations bloquées jusqu’à '+hm(m.blk)+'.</div>':'')+
+    (q.length?'<h2 style="margin-top:4px">Mes propositions</h2>'+q.map(rqCard).join(""):'')+(q.length&&l.length?'<h2>Réservations</h2>':'')+
+    (l.length?l.map(function(b){var t=tr(b.trip),a=b.st=="acceptée",open=(b.st=="attente"||a)&&t.st!="terminé";
+      return '<div class="card"><div class="row"><div class="route">'+esc(t.from)+' → '+esc(t.to)+'</div><div class="price">'+fcfa(t.price*b.pl)+'</div></div><div class="meta num">'+fd(t.date)+' à '+t.time+' · '+b.pl+' place'+(b.pl>1?'s':'')+' · Conducteur : '+esc(pf(t.driver).name)+'</div>'+sb(b.st)+(a&&t.st!="publié"?sb(t.st):'')+(a?live(t):'')+
+        (open?'<div class="btns"><button data-a="cho" data-id="'+b.id+'">Message</button>'+(a?'<button data-a="call" data-id="'+b.id+'">Appeler</button>':'')+'</div>':'')+
+        (a&&t.st!="terminé"?'<div class="btns"><button data-a="pos" data-id="'+b.id+'">Partager ma position</button></div><div class="btns"><button class="sos" data-a="sos" data-id="'+t.id+'">SOS – besoin d’aide</button></div>'+(pf(S.u).sos?'<div class="btns"><button class="out" data-a="callsos">Appeler mon contact d’urgence</button></div>':''):'')+
+        (a&&t.st!="publié"?'<div class="btns"><button class="out" data-a="rpo" data-id="'+b.id+'" data-w="'+t.driver+'">Signaler</button></div>':'')+
+        ((b.st=="attente"||a)&&t.st=="publié"?'<div class="btns"><button class="out" data-a="cancel" data-id="'+b.id+'">Annuler</button></div>':'')+'</div>'
+    }).join(""):(q.length?'':'<div class="empty">Aucune réservation.</div>'))
+}
+
+function propList(m){var ck=S.city2||"",so=S.sort2||(m.lat!=null?"prox":"recent");var l=D.rr.filter(function(r){return r.st=="ouverte"&&r.uid!=m.id&&(!ck||nk(r.fcity)==ck||nk(r.from)==ck)}).map(function(r){var o=Object.assign({},r);o.dk=(m.lat!=null&&r.flat!=null)?hav(m.lat,m.lng,r.flat,r.flng):null;return o});l.sort(so=="prox"?function(a,b){return(a.dk==null?1e9:a.dk)-(b.dk==null?1e9:b.dk)||b.id-a.id}:so=="prix"?function(a,b){return b.price-a.price}:function(a,b){return b.id-a.id});return l}
+function propBar(m){var op=D.rr.filter(function(r){return r.st=="ouverte"&&r.uid!=m.id}),so=S.sort2||(m.lat!=null?"prox":"recent");return cityChips(op,S.city2||"","cty2")+sortSeg([["prox","Proximité"],["recent","Récentes"],["prix","Prix"]],so,"srt2")}
+
+function vReq(){
+  var m=me(),mine=D.trips.filter(function(t){return t.driver==m.id}).map(function(t){return t.id}),l=D.bookings.filter(function(b){return mine.indexOf(b.trip)>-1&&b.st=="attente"}),pr=propList(m);
+  return '<h1>Demandes</h1><p class="sub">Validez ou refusez les passagers.</p>'+(l.length?l.map(function(b){var t=tr(b.trip),u=pf(b.uid),k=u.idv=="ok";
+    return '<div class="card"><div class="row rl">'+av(u.id)+'<div><div class="route" style="font-size:18px">'+esc(u.name)+'</div>'+fb(u.id)+'</div></div>'+(!k||sc(u.id)<70?'<div class="note" style="margin:10px 0 0">'+(k?'':'Identité non vérifiée. ')+'Soyez prudent.</div>':'')+'<div class="meta num" style="margin-top:8px">'+b.pl+' place'+(b.pl>1?'s':'')+' · '+esc(t.from)+' → '+esc(t.to)+' · '+t.time+'</div><div class="btns"><button class="out" data-a="deny" data-id="'+b.id+'">Refuser</button><button class="ok" data-a="accept" data-id="'+b.id+'">Valider</button></div><div class="btns"><button data-a="cho" data-id="'+b.id+'">Message</button></div></div>'
+  }).join(""):'<div class="empty">Aucune demande de réservation.</div>')+
+  '<h2>Propositions de passagers</h2>'+(m.dv=="verified"?propBar(m):'')+(m.dv!="verified"?'<div class="note">Disponible après la validation de ton dossier.</div>':(pr.length?pr.map(function(r){var u=pf(r.uid);
+    return '<div class="card"><div class="row rl">'+(u?av(u.id)+'<div><div class="route" style="font-size:18px">'+esc(u.name)+'</div>'+fb(u.id)+'</div>':'<b>Passager</b>')+'</div><div class="row" style="margin-top:10px"><div class="route" style="font-size:18px">'+esc(r.from)+' → '+esc(r.to)+'</div><div class="price">'+fcfa(r.price)+'</div></div><div class="meta num">'+fd(r.date)+' à '+r.time+' · '+r.pl+' place'+(r.pl>1?'s':'')+(r.dk!=null?' · à '+dist(r.dk):'')+(r.fcity?' · '+esc(r.fcity):'')+(r.note?' · '+esc(r.note):'')+'</div><div class="btns"><button class="out" data-a="rqd" data-id="'+r.id+'">Refuser</button><button class="ok" data-a="rqa" data-id="'+r.id+'">Accepter</button></div></div>'
+  }).join(""):'<div class="empty">Aucune proposition pour le moment.</div>'))
+}
+
+function vMine(){
+  var m=me(),l=D.trips.filter(function(t){return t.driver==m.id}).reverse(),q=m.work&&m.work.t=="quotidien";
+  return '<h1>Mes trajets</h1><p class="sub">Débutez le trajet au départ, terminez-le à l’arrivée.</p>'+(l.length?l.map(function(t){
+    var bt=t.st=="publié"?'<button class="pri full" data-a="start" data-id="'+t.id+'">Débuter le trajet</button>':t.st=="en cours"?'<button class="ok full" data-a="end" data-id="'+t.id+'">Terminer le trajet</button>':'';
+    var acc=D.bookings.filter(function(b){return b.trip==t.id&&b.st=="acceptée"}),ps="";
+    if(t.st=="terminé")ps=acc.map(function(b){return '<div class="row" style="margin-top:10px"><span>'+esc(pf(b.uid).name)+(b.ns?' · absent':'')+'</span><span><button class="out" style="min-height:38px;padding:6px 12px" data-a="noshow" data-id="'+b.id+'">Absent</button> <button class="out" style="min-height:38px;padding:6px 12px" data-a="rpo" data-id="'+b.id+'" data-w="'+b.uid+'">Signaler</button></span></div>'}).join("");
+    else ps=acc.map(function(b){return '<div class="row" style="margin-top:10px"><span><b>'+esc(pf(b.uid).name)+'</b> · '+b.pl+' pl.</span><span><button class="out" style="min-height:38px;padding:6px 12px" data-a="cho" data-id="'+b.id+'">Message</button> <button class="out" style="min-height:38px;padding:6px 12px" data-a="call" data-id="'+b.id+'">Appeler</button></span></div>'}).join("");
+    var rel=t.st=="terminé"?(q?'<div class="btns"><button data-a="rlo" data-id="'+t.id+'">Relancer</button><button data-a="rlo" data-id="'+t.id+'" data-inv="1">Inverser</button></div>':'<p class="sub" style="font-size:13px;margin:10px 0 0">Passe en mode « Quotidien » dans ton profil pour relancer en un geste.</p>'):'';
+    return '<div class="card"><div class="row"><div class="route">'+esc(t.from)+' → '+esc(t.to)+'</div>'+sb(t.st)+'</div><div class="meta num">'+t.veh+' · '+fd(t.date)+' à '+t.time+' · '+taken(t.id)+'/'+t.seats+' passagers · '+Number(t.price).toLocaleString("fr-FR")+' FCFA</div>'+live(t)+bt+(t.st=="en cours"?'<div class="btns"><button data-a="pos" data-id="'+t.id+'" data-k="d">Partager ma position</button></div>':'')+ps+rel+'</div>'
+  }).join(""):'<div class="empty">Aucun trajet publié. Touchez Publier pour commencer.</div>')
+}
+
+function vPub(){
+  var m=me(),v=vh(m.id);
+  if(m.dv!="verified"||!v)return '<h1>Publier un trajet</h1><div class="note">La publication est disponible après la validation de votre dossier. Complétez-le depuis votre profil.</div><button class="pri full" data-a="tab" data-t="prof">Voir mon profil</button>';
+  return '<h1>Publier un trajet</h1><p class="sub">Véhicule : '+esc(v.type)+' · '+esc(v.model||"")+'</p>'+
+    '<label>Départ</label><input id="pf" placeholder="Nimbo, Cocody…">'+
+    '<div class="swap-wrap"><label>Destination</label><input id="pt" placeholder="INFAS, Plateau…"><button class="swap-btn" data-a="pswap" title="Inverser">'+ico("swap",18)+'</button></div>'+
+    '<label>Date</label><input id="pd" type="date" value="'+today()+'">'+
+    '<label>Heure de départ</label><input id="ph" type="time" value="07:00">'+
+    '<label>Places disponibles</label><input id="pp" type="number" min="1" max="6" value="2">'+
+    '<label>Prix par place (FCFA)</label><input id="pr" type="number" min="0" step="100" value="1000">'+
+    '<button class="pri full" style="margin-top:18px" data-a="pub">Publier le trajet</button>'
+}
+
+function vNotif(){
+  var m=me(),l=D.notifs.filter(function(x){return x.to==m.id}).slice(0,40),
+      h='<h1>Notifications</h1>'+(l.length?l.map(function(n){return '<div class="card'+(n.r?'':' unread')+'">'+esc(n.t)+'<div class="meta num" style="margin:6px 0 0">'+new Date(n.at).toLocaleString("fr-FR",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})+'</div></div>'}).join(""):'<div class="empty">Aucune notification.</div>');
+  markRead(l);return h
+}
+
+function row2(ic,t,s,a,v,right){return '<button class="row2" data-a="'+a+'" data-v="'+v+'"><span class="ri">'+ico(ic,22)+'</span><span class="rt2"><b>'+t+'</b>'+(s?'<small>'+s+'</small>':'')+'</span>'+(right||'')+'<span class="ch">'+ico("chev",18)+'</span></button>'}
+function tasks(m,r){var t=[["Ajouter une photo","Visible par les autres membres",!!m.photo,"photo"],["Ajouter un numéro d’urgence","Pour te protéger en cas de problème",!!m.sos,"sec"],["Définir un mot secret","Pour récupérer ton compte",!!m.hs,"sec"],["Renseigner ta ville","Pour voir les trajets proches",!!m.city,"set"]];if(r=="passager")t.push(["Vérifier ton identité","Badge de confiance",m.idv=="ok"||m.idv=="review","sec"]);else t.push(["Compléter ton dossier conducteur","Documents et véhicule",m.dv=="verified"||m.dv=="review","dos"]);return t}
+function profMain(m,r){
+  var T=tasks(m,r),done=T.filter(function(x){return x[2]}).length,nx=T.filter(function(x){return!x[2]})[0],sc0=sc(m.id);
+  var prog=nx?(nx[3]=="photo"?'<label class="prog"><input type="file" data-f="pp" accept="image/*"><span class="ring" style="--p:'+Math.round(done/T.length*100)+'"><span>'+done+'/'+T.length+'</span></span><span><b>'+nx[0]+'</b><small>'+nx[1]+'</small></span></label>':'<button class="prog" data-a="ppo" data-v="'+nx[3]+'"><span class="ring" style="--p:'+Math.round(done/T.length*100)+'"><span>'+done+'/'+T.length+'</span></span><span><b>'+nx[0]+'</b><small>'+nx[1]+'</small></span></button>'):'<div class="prog" style="background:var(--greensoft)"><span class="ring" style="--p:100"><span>'+ico("check",16,"var(--green)")+'</span></span><span><b style="color:var(--green)">Profil complet</b><small style="color:var(--green)">Merci, tout est en ordre</small></span></div>';
+  var dos=r=="conducteur"?row2("key","Mon dossier et mon véhicule",m.dv=="verified"?"Dossier validé":m.dv=="review"?"En cours de vérification":"À compléter pour publier","ppo","dos",'<span class="badge '+(m.dv=="verified"?"b-ok":"b-wait")+'">'+(m.dv=="verified"?ico("check",14):ico("clock",14))+(m.dv=="verified"?"Vérifié":"À faire")+'</span>'):'';
+  return '<div class="pavw"><label class="pav"><input type="file" data-f="pp" accept="image/*" aria-label="Photo de profil">'+(m.photo?'<img src="'+m.photo+'" alt="">':ico("cam",46,"#a9adb6"))+'</label><span class="pavb">+</span></div><div class="pname">'+esc(m.name)+'</div><div class="pphone num">'+fmt(m.tel)+' · '+(r=="conducteur"?"Conducteur":"Passager")+'</div><div style="text-align:center">'+fb(m.id)+'</div>'+
+    '<div class="qa">'+[["hist","Historique","hist"],["help","Assistance","help"],["pin","Adresses","addr"],["gear","Paramètres","set"]].map(function(x){return '<button data-a="ppo" data-v="'+x[2]+'"><span class="c">'+ico(x[0],22)+'</span>'+x[1]+'</button>'}).join("")+'</div>'+prog+
+    '<div class="grp">'+row2("cash","Modes de paiement","Paiement direct au conducteur","ppo","pay")+dos+'</div>'+
+    '<div class="grp">'+row2("shield","Sécurité","SOS, contact d’urgence, mot secret","ppo","sec")+row2("star","Fiabilité "+sc0+"/100",sc0>=90?"Top ! Très fiable":sc0>=70?"Bien : continue comme ça":"À améliorer","ppo","rel",'<span class="rg" style="--p:'+sc0+'"></span>')+'</div>'+
+    '<div class="grp">'+row2("info","Informations","Conditions, confidentialité, à propos","ppo","info")+row2("out","Se déconnecter","","logout","")+'</div>'+foot(1)
+}
+function pph(t){return '<button class="link" data-a="ppx">'+ico("chev",16)+' Profil</button><h1>'+t+'</h1>'}
+function statsHtml(m,r){if(r=="conducteur"){var d=D.trips.filter(function(t){return t.driver==m.id&&t.st=="terminé"});return '<div class="stats"><div class="stat"><b>'+d.length+'</b><span>Trajets</span></div><div class="stat"><b>'+d.reduce(function(a,t){return a+taken(t.id)},0)+'</b><span>Passagers</span></div><div class="stat"><b>'+Number(d.reduce(function(a,t){return a+taken(t.id)*t.price},0)).toLocaleString("fr-FR")+'</b><span>FCFA</span></div></div>'}var f=D.bookings.filter(function(b){var t=tr(b.trip);return b.uid==m.id&&b.st=="acceptée"&&t&&t.st=="terminé"}).length;return '<div class="stats"><div class="stat"><b>'+f+'</b><span>Terminés</span></div><div class="stat"><b>'+D.bookings.filter(function(b){return b.uid==m.id&&b.late}).length+'</b><span>Annul. tardives</span></div><div class="stat"><b>'+D.bookings.filter(function(b){return b.uid==m.id&&b.ns}).length+'</b><span>Absences</span></div></div>'}
+function idCard(m){return '<div class="card"><b>Vérification d’identité</b><div class="row" style="margin-top:10px"><span>Pièce d’identité</span>'+(m.idv=="ok"?'<span class="badge b-ok">'+ico("check",14)+'Vérifiée</span>':m.idv=="review"?'<span class="badge b-wait">'+ico("clock",14)+'En vérification</span>':up('Ajouter','pid','',0,'image/*,application/pdf'))+'</div><p class="sub" style="margin:10px 0 0;font-size:13.5px">Visible uniquement par vous et l’équipe Trajet.</p></div>'}
+function dossier(m){var v=vh(m.id);if(!v){v={uid:m.id,type:"Moto",model:"",plate:"",photos:[]};D.vehicles.push(v)}var dd=D.driver_documents.filter(function(x){return x.uid==m.id});return (m.dv=="review"?'<div class="note">Dossier en cours de vérification. Vous pourrez publier dès la validation.</div>':'')+workCard(m)+'<div class="card"><b>Véhicule</b><label>Type</label><select data-k="type"><option'+(v.type=="Voiture"?' selected':'')+'>Voiture</option><option'+(v.type!="Voiture"?' selected':'')+'>Moto</option></select><label>Modèle</label><input data-k="model" placeholder="TVS Rock Z" value="'+esc(v.model)+'"><label>Plaque</label><input data-k="plate" placeholder="1234 AB 01" value="'+esc(v.plate)+'">'+vph(m.id)+'<div style="margin-top:10px">'+up('Ajouter des photos','vp','',1,'image/*')+'</div></div><div class="card"><b>Documents</b><p class="sub" style="font-size:13px;margin:4px 0 10px">Privés : visibles uniquement par vous et l’équipe Trajet.</p>'+Object.keys(DN).map(function(k){var x=dd.filter(function(y){return y.kind==k})[0];return '<div class="doc'+(x?' done':'')+'"><div><b>'+DN[k]+'</b><div class="meta" style="margin:0">'+(x?'Ajouté · '+esc(x.name):'Photo ou PDF')+'</div></div>'+up(x?'Remplacer':'Ajouter','doc',k,0,'image/*,application/pdf')+'</div>'}).join("")+(m.dv!="verified"?'<button class="pri full" data-a="send">Envoyer pour vérification</button>':'')+'</div>'+statsHtml(m,"conducteur")}
+function ppHist(m,r){var l=r=="conducteur"?D.trips.filter(function(t){return t.driver==m.id}).reverse().map(function(t){return{t:t,st:t.st,pr:t.price}}):D.bookings.filter(function(b){return b.uid==m.id&&tr(b.trip)}).reverse().map(function(b){var t=tr(b.trip);return{t:t,st:b.st=="acceptée"&&t.st=="terminé"?"terminé":b.st,pr:t.price*b.pl}});return pph("Historique")+(l.length?l.map(function(x){return '<div class="card"><div class="row"><div class="route" style="font-size:17px">'+esc(x.t.from)+' → '+esc(x.t.to)+'</div><div class="price" style="font-size:17px">'+Number(x.pr).toLocaleString("fr-FR")+' F</div></div><div class="meta num">'+fd(x.t.date)+' à '+x.t.time+'</div>'+sb(x.st)+'</div>'}).join(""):'<div class="empty">Aucun trajet pour le moment.</div>')}
+function ppHelp(){var q=[["Comment réserver une place ?","Dans Rechercher, choisis un trajet, indique le nombre de places puis touche Réserver."],["Comment payer ?","Trajet est gratuit et sans commission. Tu paies directement le conducteur, en main propre."],["Je ne trouve pas mon trajet","Touche « Proposer » : indique ton trajet et le montant que tu proposes."],["Que se passe-t-il si j’annule ?","Une annulation après validation baisse ta fiabilité. Trois annulations dans la journée bloquent les réservations pendant 4 heures."],["À quoi servent SOS et Partager ma position ?","Le SOS alerte l’équipe Trajet. « Partager ma position » envoie ta position et la plaque du véhicule à ton contact d’urgence."]];return pph("Assistance")+q.map(function(x){return '<details class="faq"><summary>'+x[0]+'</summary><p>'+x[1]+'</p></details>'}).join("")}
+function ppAddr(m){var a=m.places||[];return pph("Mes adresses")+'<p class="sub">Retrouve tes lieux favoris en un geste sur l’accueil.</p>'+(a.length?'<div class="grp">'+a.map(function(x,i){return '<div class="row2" style="cursor:default"><span class="ri">'+ico({Maison:"home",Bureau:"brief","École":"school"}[x.l]||"pin",22)+'</span><span class="rt2"><b>'+esc(x.l)+'</b><small>'+esc(x.p)+'</small></span><button class="link" data-a="addrdel" data-id="'+i+'">Supprimer</button></div>'}).join("")+'</div>':'')+'<div class="card"><b>Ajouter une adresse</b><label>Type</label><select id="al"><option>Maison</option><option>Bureau</option><option>École</option><option>Autre</option></select><label>Lieu</label><input id="ap" maxlength="80" placeholder="Cocody, Riviera 2…"><button class="pri full" style="margin-top:12px" data-a="addradd">Ajouter</button></div>'}
+function locCard(m){return '<div class="card"><b>Ma ville et ma position</b><p class="sub" style="font-size:13px;margin:4px 0 0">'+(m.city?'Ville : <b>'+esc(m.city)+'</b>. ':'Ville non renseignée. ')+'Ta position exacte reste privée.</p><div class="btns"><button data-a="loc">'+ico("pin",16)+' Utiliser ma position</button></div><label>Ou saisis ta ville</label><div class="btns" style="margin-top:0"><input id="ct" value="'+esc(m.city||"")+'" placeholder="Abidjan"><button class="out" style="flex:none" data-a="cityset">OK</button></div>'+(role()=="passager"?'<div class="btns"><button class="out" data-a="altog">'+(m.alerts!==false?"Alertes trajets proches : activées":"Alertes trajets proches : désactivées")+'</button></div>':'')+'</div>'}
+
+function ppSet(m,r){
+  var curTh="";try{curTh=localStorage.getItem("trajet_theme")||""}catch(e){}
+  return pph("Paramètres")+
+    '<div class="card"><b>Apparence</b><p class="sub" style="font-size:13px;margin:4px 0 10px">Choisis le thème de l’application.</p><div class="seg">'+[["","Auto"],["light","Clair"],["dark","Sombre"]].map(function(x){return '<button data-a="theme" data-v="'+x[0]+'" class="'+(curTh==x[0]?"on":"")+'">'+x[1]+'</button>'}).join("")+'</div></div>'+
+    locCard(m)+
+    '<div class="btns"><button class="out" data-a="logout">Se déconnecter</button></div>'+
+    '<div style="margin-top:40px;padding-top:20px;border-top:1px solid var(--line)">'+(S.del?'<div class="card" style="border-color:var(--red)"><b>Supprimer définitivement votre compte ?</b><p class="sub" style="margin:8px 0 0">Cette action est irréversible.</p><div class="btns" style="margin-top:16px"><button class="out" data-a="delno">Annuler</button><button class="pri" data-a="del">Oui, supprimer</button></div></div>':'<button class="link full" style="color:var(--red)" data-a="del">Supprimer mon compte</button>')+'</div>'
+}
+function ppSec(m,r){return pph("Sécurité")+'<p class="sub">Tes outils pour voyager l’esprit tranquille.</p>'+sosCard(m)+secretCard(m)+(r=="passager"?idCard(m):'')}
+function ppRel(m,r){var s=sc(m.id);return pph("Fiabilité")+'<div class="card" style="text-align:center"><span class="ring" style="--p:'+s+';width:104px;height:104px;margin:6px auto"><span class="num" style="font-size:26px">'+s+'</span></span><div class="route num" style="margin-top:10px">'+s+' / 100</div><p class="sub" style="margin:6px 0 0">'+(s>=90?"Top ! Très fiable.":s>=70?"Bien : continue comme ça.":"À améliorer : évite les annulations tardives.")+'</p></div>'+statsHtml(m,r)}
+function ppPay(){return pph("Modes de paiement")+'<div class="card"><b>Paiement direct</b><p class="sub" style="font-size:14px;margin:6px 0 0">Trajet est gratuit et sans commission. Tu paies le conducteur directement, en main propre, au prix annoncé.</p></div>'}
+function ppInfo(){return pph("Informations")+'<div class="grp">'+row2("doc","Conditions d’utilisation","","tab","cgu").replace('data-v="cgu"','data-t="cgu"')+row2("shield","Politique de confidentialité","","tab","priv").replace('data-v="priv"','data-t="priv"')+'</div><p class="sub" style="text-align:center">Trajet · © 2026 Digitalk Afrique</p>'}
+function ppView(p,m,r){return {hist:ppHist,help:ppHelp,addr:ppAddr,set:ppSet,sec:ppSec,rel:ppRel,pay:ppPay,info:ppInfo,dos:function(m){return pph("Mon dossier et mon véhicule")+dossier(m)}}[p](m,r)}
+function vProf(){var m=me(),r=role();if(r=="admin")return '<h1>Profil</h1><div class="card"><div class="row rl" style="gap:14px">'+av(m.id,1)+'<div><div class="route">'+esc(m.name)+'</div><div class="meta" style="margin:0">Administrateur</div></div></div></div><button class="out full" data-a="logout">Se déconnecter</button>'+foot(1);if(S.pp)return ppView(S.pp,m,r);return profMain(m,r)}
+
+function resets(){var l=D.password_resets.filter(function(r){return r.st=="ouvert"&&pf(r.uid)});return l.length?'<h2 style="margin-top:0">Mots de passe oubliés</h2>'+l.map(function(r){var p=pf(r.uid);return '<div class="card unread"><div class="row"><b>'+esc(p.name)+'</b><span class="meta num" style="margin:0">'+fmt(p.tel)+'</span></div><div style="margin:8px 0 2px">'+(r.so===true?'<span class="badge b-ok">'+ico("check",14)+'Mot secret correct</span>':r.so===false?'<span class="badge b-red">'+ico("alert",14)+'Mot secret INCORRECT</span>':'<span class="badge b-wait">'+ico("clock",14)+'Aucun mot secret</span>')+'</div><label>Nouveau mot de passe (6 à 8 chiffres)</label><input id="rp'+r.id+'" inputmode="numeric" maxlength="8" placeholder="Ex. 482915"><div class="btns"><button class="out" data-a="rpno" data-id="'+r.id+'">Ignorer</button><button class="ok" data-a="rpok" data-id="'+r.id+'">Réinitialiser</button></div></div>'}).join(""):''}
+function vAdm(){
+  var T=[["docs","Dossiers"],["usr","Comptes"],["rep","Alertes"],["ads","Annonces"],["log","Journal"]],a=S.at,
+      h='<h1>Administration</h1><div class="seg">'+T.map(function(x){return '<button data-a="at" data-v="'+x[0]+'" class="'+(a==x[0]?"on":"")+'">'+x[1]+'</button>'}).join("")+'</div><div style="height:14px"></div>';
+  if(a=="ads"){var g=S.ad=S.ad||{t:"",x:"",i:""};return h+'<div class="card"><b>Nouvelle annonce</b><label>Titre</label><input data-ad="t" value="'+esc(g.t)+'"><label>Texte</label><input data-ad="x" value="'+esc(g.x)+'"><label>Durée (s, 60 max)</label><input data-ad="d" type="number" min="3" max="60" value="'+(g.d||10)+'">'+(g.i?'<div class="ph"><img src="'+g.i+'" alt=""></div>':'')+'<div style="margin-top:10px">'+up(g.i?'Changer l’image':'Ajouter une image','ad','',0,'image/*')+'</div><button class="pri full" style="margin-top:12px" data-a="adadd">Publier l’annonce</button></div><h2>Annonces ('+D.ads.length+')</h2>'+(D.ads.length?D.ads.map(function(x){return '<div class="card"><div class="row"><b>'+esc(x.t||"Sans titre")+'</b><span class="badge '+(x.on?"b-ok":"")+'">'+(x.on?"Active":"En pause")+'</span></div>'+(x.i?'<div class="ph"><img src="'+x.i+'" alt=""></div>':'')+'<div class="meta">'+esc(x.x)+' · '+Math.min(60,x.d||10)+' s</div><div class="btns"><button data-a="adtog" data-id="'+x.id+'">'+(x.on?"Pause":"Activer")+'</button><button class="out" data-a="addel" data-id="'+x.id+'">Supprimer</button></div></div>'}).join(""):'<div class="empty">Aucune annonce.</div>')}
+  if(a=="docs"){var l=D.profiles.filter(function(p){return p.dv=="review"});return h+(l.length?l.map(function(p){var v=vh(p.id)||{};return '<div class="card"><div class="row rl">'+av(p.id)+'<b>'+esc(p.name)+'</b></div><div class="meta">'+esc(v.type||"")+' · '+esc(v.model||"")+' · '+esc(v.plate||"")+'</div>'+vph(p.id)+D.driver_documents.filter(function(x){return x.uid==p.id}).map(function(x){return '<div class="meta" style="margin:8px 0 0">'+DN[x.kind]+' : '+esc(x.name)+'</div>'+(PV["d"+p.id+x.kind]?'<div class="ph"><img src="'+PV["d"+p.id+x.kind]+'" alt=""></div>':'')}).join("")+'<div class="btns"><button class="out" data-a="dno" data-id="'+p.id+'">Refuser</button><button class="ok" data-a="dval" data-id="'+p.id+'">Valider</button></div></div>'}).join(""):'<div class="empty">Aucun dossier à valider.</div>')}
+  if(a=="usr")return h+resets()+D.profiles.filter(function(p){return rl(p.id)!="admin"}).map(function(p){var bad=p.st!="actif";return '<div class="card"><div class="row"><div class="row rl">'+av(p.id)+'<div><b>'+esc(p.name)+'</b><div class="meta num" style="margin:0">'+fmt(p.tel)+' · '+rl(p.id)+'</div></div></div><span class="badge '+(bad?"b-red":"b-ok")+'">'+p.st+'</span></div><div style="margin-top:8px">'+fb(p.id)+'</div>'+(p.idv=="review"?(PV["i"+p.id]?'<div class="ph"><img src="'+PV["i"+p.id]+'" alt=""></div>':'')+'<button class="ok full" style="margin-top:8px" data-a="idok" data-id="'+p.id+'">Valider la pièce d’identité</button>':'')+'<div class="btns">'+(bad?'<button data-a="ust" data-id="'+p.id+'" data-v="actif">Réactiver</button>':'<button class="out" data-a="ust" data-id="'+p.id+'" data-v="suspendu">Suspendre</button><button class="pri" data-a="ust" data-id="'+p.id+'" data-v="banni">Bannir</button>')+'</div></div>'}).join("");
+  if(a=="rep")return h+'<h2 style="margin-top:0">SOS</h2>'+(D.sos_alerts.length?D.sos_alerts.map(function(s){return '<div class="card"><div class="row"><b>'+esc(pf(s.uid)?pf(s.uid).name:"Compte supprimé")+'</b>'+sb(s.st=="ouvert"?"attente":"terminé").replace("En attente","Ouverte").replace("Terminé","Traitée")+'</div><div class="meta num">'+new Date(s.at).toLocaleString("fr-FR")+(s.sos?' · Contact : '+esc(s.sos.name||"")+' '+fmt(s.sos.tel):'')+'</div>'+(s.st=="ouvert"?'<button class="ok full" data-a="sosx" data-id="'+s.id+'">Marquer traitée</button>':'')+'</div>'}).join(""):'<div class="empty">Aucune alerte SOS.</div>')+'<h2>Signalements</h2>'+(D.reports.length?D.reports.map(function(r){var o=r.st=="ouvert";return '<div class="card"><div class="row"><b>'+esc(pf(r.who)?pf(r.who).name:"?")+'</b><span class="badge '+(o?"b-wait":"b-ok")+'">'+r.st+'</span></div><div class="meta">Par '+esc(pf(r.by)?pf(r.by).name+" ("+rl(r.by)+")":"?")+'</div><div style="margin-top:6px">'+esc(r.why)+'</div>'+(o?'<div class="btns"><button class="out" data-a="rcl" data-id="'+r.id+'">Classer</button><button data-a="rwarn" data-id="'+r.id+'">Avertir</button><button class="pri" data-a="rban" data-id="'+r.id+'">Bannir</button></div>':'')+'</div>'}).join(""):'<div class="empty">Aucun signalement.</div>');
+  return h+(D.activity_log.length?'<div class="card">'+D.activity_log.slice(0,30).map(function(x){return '<div class="meta num" style="margin:0 0 8px">'+hm(x.at)+' · '+esc(pf(x.uid)?pf(x.uid).name:"?")+' : '+x.t+'</div>'}).join("")+'</div>':'<div class="empty">Aucune activité.</div>')
+}
+
+var VU={},REC={mr:null,chunks:[],t0:0,tm:null,cancel:false};
+async function loadMsgs(){if(!S.ch)return;var r=await SB.from("messages").select("*").eq("booking_id",S.ch).order("id");if(r.error)throw r.error;var need=r.data.filter(function(x){return x.audio_path&&!VU[x.audio_path]}).map(function(x){return x.audio_path});if(need.length){var U=await sign("voice",need);for(var k in U)VU[k]=U[k]}S.msgs=r.data.map(function(x){return{id:x.id,me:x.sender_id==S.u,t:x.body,a:x.audio_path?VU[x.audio_path]:"",at:ms(x.created_at)}})}
+function msgsHtml(){var l=S.msgs||[];return l.length?l.map(function(m){return '<div class="bub'+(m.me?' me':'')+'">'+(m.a?'<audio controls preload="none" src="'+m.a+'"></audio>':esc(m.t))+'<small class="num">'+hm(m.at)+'</small></div>'}).join(""):'<div class="empty">Aucun message. Écris ou envoie un vocal.</div>'}
+function chatView(){var b=bk(S.ch),t=b&&tr(b.trip);if(!t)return '<button class="link" data-a="chx">'+ico("chev",16)+' Retour</button><div class="empty">Conversation indisponible</div>';var o=S.u==b.uid?t.driver:b.uid,p=pf(o);return '<button class="link" data-a="chx">'+ico("chev",16)+' Retour</button><div class="row rl" style="margin:6px 0 12px">'+av(o)+'<div><b>'+esc(p?p.name:"?")+'</b><div class="meta" style="margin:0">'+esc(t.from)+' → '+esc(t.to)+'</div></div></div><div id="msgs" class="msgs">'+msgsHtml()+'</div>'+(S.rec?'<div class="cbar"><button class="out" data-a="mcancel">Annuler</button><div class="rec">● Enregistrement <span id="rect">0:00</span></div><button class="pri" data-a="mrec">Envoyer</button></div>':'<div class="cbar"><input id="cm" placeholder="Votre message…" maxlength="1000"><button class="pri" data-a="msend">Envoyer</button><button class="out" data-a="mrec" aria-label="Message vocal">'+ico("mic",20)+'</button></div>')}
+function stopRec(){return new Promise(function(res){var mr=REC.mr;if(!mr)return res();clearTimeout(REC.tm);mr.onstop=async function(){mr.stream.getTracks().forEach(function(x){x.stop()});var type=mr.mimeType||"audio/webm",blob=new Blob(REC.chunks,{type:type}),long=Date.now()-REC.t0>=700;REC.mr=null;S.rec=0;if(!REC.cancel&&long){try{var ext=/mp4/.test(type)?"m4a":"webm",path=S.ch+"/"+Date.now()+"."+ext;ok(await SB.storage.from("voice").upload(path,blob,{contentType:type.split(";")[0]}));ok(await SB.from("messages").insert({booking_id:S.ch,sender_id:S.u,audio_path:path}));await loadMsgs()}catch(e){toast(e.message||"Envoi du vocal impossible")}}res()};mr.stop()})}
+
+function render(){
+  var a=$("app");
+  if(!me()){S.u=null;a.innerHTML=vAuth();return}
+  var r=role(),ok=TABS[r].concat(ALL);
+  if(ok.indexOf(S.tab)<0){S.tab=TABS[r][0];S.sub=""}
+  try{if(location.hash!="#"+S.tab)history.replaceState(null,"","#"+S.tab)}catch(e){}
+  var v=S.rp?rpForm():S.ch?chatView():S.sh?shView():S.rq?rqForm():S.rl?rlForm():{search:vSearch,res:vRes,req:vReq,mine:vMine,pub:vPub,prof:vProf,adm:vAdm,notif:vNotif,priv:pol,cgu:cgu}[S.tab]();
+  a.innerHTML=head()+'<main>'+v+'</main>'+nav()
+}
+window.addEventListener("hashchange",function(){var t=location.hash.slice(1);if(t&&t!=S.tab&&me()){S.tab=t;render()}});
+
+var SU="https://fokibiczyrdbovnwoflu.supabase.co",
+    SKEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZva2liaWN6eXJkYm92bndvZmx1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQ3NDY4OTEsImV4cCI6MjExMDMyMjg5MX0.z9iTaduLCHbfKTINBCK7f8zC3ZMiB8PfxCxQ5jXYMuc",
+    EM="@trajet.app",
+    SB=supabase.createClient(SU,SKEY);
+
+function ms(t){return t?new Date(t).getTime():0}
+function ok(r){if(r&&r.error)throw r.error;return r}
+function ck(r){if(r.error)throw r.error;return r.data}
+function lg(t){try{SB.from("activity_log").insert({user_id:S.u,text:t}).then(function(){})}catch(e){}}
+var SGC={},IMG=/\.(jpe?g|png|webp)$/i;
+function sign(bucket,paths){paths=paths.filter(Boolean);var o={},need=[],now=Date.now();paths.forEach(function(p){var c=SGC[bucket+"/"+p];if(c&&c.e>now)o[p]=c.u;else if(need.indexOf(p)<0)need.push(p)});if(!need.length)return Promise.resolve(o);return SB.storage.from(bucket).createSignedUrls(need,3600).then(function(r){(r.data||[]).forEach(function(x){if(x.signedUrl){o[x.path]=x.signedUrl;SGC[bucket+"/"+x.path]={u:x.signedUrl,e:now+3000000}}});return o})}
+var QS=function(t,o,n){var x=SB.from(t).select("*");if(o)x=x.order(o,{ascending:false}).limit(n||60);return x};
+
+var ALLP=["people","veh","trips","book","rr","admin","ads","notif"],LP={
+  people:async function(){var d=(await Promise.all([QS("profiles"),QS("user_roles"),QS("public_profiles"),SB.rpc("scores"),SB.rpc("my_block_until"),SB.rpc("has_secret_word")])).map(ck);var roles={},P={};d[2].forEach(function(x){roles[x.id]=x.role;P[x.id]={id:x.id,name:x.name,tel:"",path:x.photo_path,st:"actif",dv:x.role=="conducteur"&&x.verified?"verified":"none",idv:x.role=="passager"&&x.verified?"ok":"none",work:x.role=="conducteur"?{t:x.work_type||"occasionnel",days:x.work_days||[]}:null}});d[1].forEach(function(r){roles[r.user_id]=r.role});d[0].forEach(function(x){var p=P[x.id]||(P[x.id]={id:x.id,work:null});p.name=x.name;p.tel=x.tel;p.path=x.photo_path;p.st=x.status;p.dv=x.driver_status;p.idv=x.id_status;p.idpath=x.id_doc_path;if(roles[x.id]=="conducteur")p.work={t:x.work_type,days:x.work_days||[]};p.city=x.city||"";p.places=Array.isArray(x.places)?x.places:[];p.lat=x.lat;p.lng=x.lng;p.alerts=x.alerts!==false;if(x.sos_tel)p.sos={name:x.sos_name||"",tel:x.sos_tel}});var ids=Object.keys(P);if(S.u&&P[S.u]){P[S.u].blk=d[4]?ms(d[4]):0;P[S.u].hs=d[5]===true}var U=await Promise.all([sign("avatars",ids.map(function(i){return P[i].path})),sign("documents",ids.map(function(i){return P[i].idpath}))]);ids.forEach(function(i){var p=P[i];p.photo=U[0][p.path]||"";if(p.idpath&&U[1][p.idpath]&&IMG.test(p.idpath))PV["i"+i]=U[1][p.idpath]});D.profiles=ids.map(function(i){return P[i]});D.user_roles=Object.keys(roles).map(function(i){return{uid:i,role:roles[i]}});D.scores={};d[3].forEach(function(s){D.scores[s.id]=s.score})},
+  veh:async function(){var d=(await Promise.all([QS("vehicles"),QS("vehicle_private"),QS("driver_documents")])).map(ck);var U=await Promise.all([sign("vehicles",[].concat.apply([],d[0].map(function(v){return v.photo_paths||[]}))),sign("documents",d[2].map(function(x){return x.file_path}))]);var pl={};d[1].forEach(function(x){pl[x.user_id]=x.plate});D.vehicles=d[0].map(function(v){return{uid:v.user_id,type:v.type,model:v.model||"",plate:pl[v.user_id]||"",paths:v.photo_paths||[],photos:(v.photo_paths||[]).map(function(p){return U[0][p]}).filter(Boolean)}});D.driver_documents=d[2].map(function(x){var u=U[1][x.file_path];if(u&&IMG.test(x.file_path))PV["d"+x.user_id+x.kind]=u;return{uid:x.user_id,kind:x.kind,name:x.file_name||"",st:x.status}})},
+  trips:async function(){var d=(await Promise.all([QS("trips","id",400),SB.rpc("taken_seats"),QS("trip_positions")])).map(ck);D.trips=d[0].slice().sort(function(a,b){return a.id-b.id}).map(function(t){return{id:t.id,from:t.from_place,to:t.to_place,date:t.depart_date,time:String(t.depart_time).slice(0,5),seats:t.seats,price:t.price,veh:t.vehicle_type,driver:t.driver_id,st:t.status,flat:t.from_lat,fcity:t.from_city||"",flng:t.from_lng,tlat:t.to_lat,tlng:t.to_lng}});D.taken={};d[1].forEach(function(x){D.taken[x.trip_id]=x.taken});D.pos={};d[2].forEach(function(x){D.pos[x.trip_id]={lat:x.lat,lng:x.lng,at:ms(x.updated_at)}});if(S.u)resumeTrack()},
+  book:async function(){var d=ck(await QS("bookings","id",400));D.bookings=d.slice().sort(function(a,b){return a.id-b.id}).map(function(b){return{id:b.id,trip:b.trip_id,uid:b.passenger_id,pl:b.places,st:b.status,late:b.late_cancel,ns:b.no_show,cat:ms(b.cancelled_at)}})},
+  rr:async function(){var d=ck(await QS("ride_requests","id",300));D.rr=d.slice().sort(function(a,b){return a.id-b.id}).map(function(r){return{id:r.id,uid:r.passenger_id,from:r.from_place,to:r.to_place,date:r.depart_date,time:String(r.depart_time).slice(0,5),pl:r.places,price:r.price_offer,note:r.note||"",st:r.status,driver:r.driver_id,trip:r.trip_id,fcity:r.from_city||"",flat:r.from_lat,flng:r.from_lng}})},
+  admin:async function(){var d=(await Promise.all([QS("reports"),QS("sos_alerts"),QS("activity_log","at"),QS("password_resets")])).map(ck);D.reports=d[0].map(function(r){return{id:r.id,bk:r.booking_id,who:r.reported_id,by:r.reporter_id,why:r.reason,st:r.status,at:ms(r.created_at)}});D.sos_alerts=d[1].map(function(s){return{id:s.id,uid:s.user_id,trip:s.trip_id,at:ms(s.at),st:s.status,sos:s.contact_tel?{name:s.contact_name||"",tel:s.contact_tel}:null}});D.activity_log=d[2].map(function(a){return{at:ms(a.at),uid:a.user_id,t:a.text}});D.password_resets=d[3].map(function(r){return{id:r.id,uid:r.user_id,st:r.status,so:r.secret_ok}})},
+  ads:async function(){var d=ck(await QS("ads"));var U=await sign("ads",d.map(function(a){return a.image_path}));D.ads=d.slice().sort(function(a,b){return b.id-a.id}).map(function(a){return{id:a.id,t:a.title||"",x:a.body||"",i:U[a.image_path]||"",on:a.active,d:a.duration_s,at:ms(a.at)}})},
+  notif:async function(){var d=ck(await QS("notifications","at"));D.notifs=d.map(function(n){return{id:n.id,to:n.user_id,t:n.text,at:ms(n.at),r:n.read?1:0}})}
+};
+async function load(parts){parts=parts||ALLP;await Promise.all(parts.map(function(p){return LP[p]()}))}
+var TP={search:"trips,people,book,rr",res:"book,trips,rr,people",req:"book,rr,trips,people",mine:"trips,book",prof:"veh,people",notif:"notif",adm:"admin,people,veh,ads",pub:"veh"};
+function tpar(t){return TP[t]?TP[t].split(","):null}
+var BG=0;
+function bg(parts){if(!S.u||BG)return;BG=1;load(parts).then(function(){BG=0;var a=document.activeElement;if(busy||S.rec||S.rp||S.ch||S.sh||S.rq||S.rl||(a&&/INPUT|TEXTAREA|SELECT/.test(a.tagName)))return;if(S.tab=="search"&&!S.sub&&$("tl")){$("tl").innerHTML=tl();return}render()}).catch(function(){BG=0})}
+function markRead(l){var u=l.filter(function(n){return!n.r});if(!u.length)return;u.forEach(function(n){n.r=1});SB.from("notifications").update({read:true}).eq("user_id",S.u).eq("read",false).then(function(){})}
+function fn(action,uid,password){return SB.functions.invoke("admin-actions",{body:{action:action,uid:uid,password:password}}).then(function(r){if(r.error)throw new Error("Action refusée");return r.data})}
+var vt;function saveV(){clearTimeout(vt);var v=vh(S.u);if(!v)return Promise.resolve();return SB.from("vehicles").upsert({user_id:S.u,type:v.type,model:v.model,photo_paths:v.paths||[]}).then(function(r){ok(r);return SB.from("vehicle_private").upsert({user_id:S.u,plate:v.plate})}).then(ok)}
+function rb(x){return new Promise(function(res,rej){var r=new FileReader();r.onload=function(){var i=new Image();i.onload=function(){var s=Math.min(1,900/Math.max(i.width,i.height)),c=document.createElement("canvas");c.width=Math.round(i.width*s);c.height=Math.round(i.height*s);c.getContext("2d").drawImage(i,0,0,c.width,c.height);c.toBlob(function(b){b?res(b):rej(new Error("Image illisible"))},"image/jpeg",.78)};i.onerror=function(){rej(new Error("Image illisible"))};i.src=r.result};r.onerror=function(){rej(new Error("Lecture impossible"))};r.readAsDataURL(x)})}
+function guardBan(){var m=me();if(S.u&&(!m||m.st=="banni")){S.u=null;return SB.auth.signOut().then(function(){toast("Ce compte est banni")})}}
+
+function pubTrip(f,t,v,date,time,seats,price,after){
+  return geoQ(f,2000).then(async function(g){
+    var a=g.r,r=await SB.from("trips").insert({driver_id:S.u,from_place:f,to_place:t,depart_date:date||today(),depart_time:time||"07:00",seats:Math.min(6,Math.max(1,+seats||1)),price:Math.max(0,+price||0),vehicle_type:v.type,from_city:(a&&a.city)||f,from_lat:a?a.lat:null,from_lng:a?a.lng:null}).select("id");
+    ok(r);
+    if(!a&&r.data&&r.data[0]){g.p.then(function(b){if(b)SB.from("trips").update({from_city:b.city||f,from_lat:b.lat,from_lng:b.lng}).eq("id",r.data[0].id).then(function(){})})}
+    after()
+  })
+}
+
+var A={
+  mode:function(d){S.auth=d.v;S.adm=0},
+  tap:function(){var n=Date.now();S.tp=(S.tp&&n-S.tl<2500)?S.tp+1:1;S.tl=n;if(S.tp>=5){S.tp=0;S.adm=S.adm?0:1;S.auth="in"}},
+  role:function(d){S.rr=d.v},
+  pol1:function(){S.pol=1},pol2:function(){S.pol=2},pol0:function(){S.pol=0},
+  fg:function(){S.auth="fg";S.fgdone=0},
+  tab:function(d){S.tab=d.t;S.sub="";S.del=0;S.pp="";S.ce=0;S.rp=S.ch=S.sh=S.rq=S.rl=null;setTimeout(function(){bg(tpar(d.t))},0)},
+  sub:function(d){S.sub=d.s},
+  open:function(d,id){S.sel=id;S.sub="d";S.pl=1;window.scrollTo(0,0)},
+  plm:function(){S.pl=Math.max(1,(S.pl||1)-1)},
+  plp:function(){var t=tr(S.sel);S.pl=Math.min(t.seats-taken(t.id),(S.pl||1)+1)},
+  veh:function(d){S.q.f=$("qf").value;S.q.t=$("qt").value;S.q.d=$("qd").value;S.q.v=d.v},
+  qdate:function(d){S.q.f=$("qf").value;S.q.t=$("qt").value;S.q.d=d.v},
+  qswap:function(){var f=$("qf").value,t=$("qt").value;S.q.f=t;S.q.t=f},
+  pswap:function(){var f=$("pf").value,t=$("pt").value;$("pf").value=t;$("pt").value=f},
+  theme:function(d){try{if(d.v){localStorage.setItem("trajet_theme",d.v);document.documentElement.setAttribute("data-theme",d.v)}else{localStorage.removeItem("trajet_theme");document.documentElement.removeAttribute("data-theme")}}catch(e){}},
+  at:function(d){S.at=d.v},
+  cty:function(d){S.city=d.v},cty2:function(d){S.city2=d.v},
+  srt:function(d){S.sort=d.v},srt2:function(d){S.sort2=d.v},
+  locm:function(){S.ce=1},
+  sfo:function(){S.sf=!S.sf},
+  tile:function(d){S.q.v=S.q.v==d.v?"all":d.v;S.sf=0;setTimeout(function(){var e=$("tl");if(e)e.scrollIntoView({behavior:"smooth",block:"start"})},80)},
+  goto:function(d){S.q.t=d.p;S.sf=1;S.sub=""},
+  ppo:function(d){S.tab="prof";S.pp=d.v;S.sub="";S.del=0;window.scrollTo(0,0);setTimeout(function(){bg(tpar("prof"))},0)},
+  ppx:function(){S.pp="";S.del=0;window.scrollTo(0,0)},
+  rpo:function(d,id){var b=bk(id),t=b&&tr(b.trip),w=d.w;if(!t)return;if(!(own(t)&&b.uid==w)&&!(role()=="passager"&&b.uid==S.u&&t.driver==w))return;S.rp={who:w,bk:id};window.scrollTo(0,0)},
+  rpx:function(){S.rp=null},
+  callsos:function(){var s=pf(S.u).sos;if(s)location.href="tel:+225"+String(s.tel).replace(/\D/g,"")},
+  delno:function(){S.del=0},
+  rqo:function(){S.rq={};window.scrollTo(0,0)},rqx:function(){S.rq=null},
+  rlo:function(d,id){var t=tr(id);if(!own(t))return;var inv=d.inv=="1";S.rl={from:inv?t.to:t.from,to:inv?t.from:t.to,time:t.time,seats:t.seats,price:t.price,date:today()};window.scrollTo(0,0)},
+  rlx:function(){S.rl=null},
+  rlswap:function(){var r=S.rl;r.from=$("yf").value;r.to=$("yt").value;r.date=$("yd").value;r.time=$("yh").value;r.seats=$("yp").value;r.price=$("yr").value;var x=r.from;r.from=r.to;r.to=x},
+  shx:function(){S.sh=null},
+  shcopy:function(){try{navigator.clipboard.writeText(S.sh.txt);toast("Message copié")}catch(e){toast("Copie impossible")}},
+
+  login:async function(){var t=$("lt").value.trim(),p=$("lp").value;if(!t||!p)return toast("Renseignez vos identifiants");var em=t.indexOf("@")>0?t:(cl(t).length==10?cl(t)+EM:"");if(!em)return toast("Numéro à 10 chiffres (+225)");var r=await SB.auth.signInWithPassword({email:em,password:p});if(r.error)return toast("Numéro ou mot de passe incorrect");S.u=r.data.user.id;S.tab="";lg("Connexion")},
+  reg:async function(){var n=$("sn").value.trim(),t=cl($("st").value),p=$("sp").value;if(n.length<2)return toast("Entrez votre nom complet");if(t.length!=10)return toast("Numéro à 10 chiffres (+225)");if(!/^\d{6,8}$/.test(p))return toast("Mot de passe : 6 à 8 chiffres");if(!$("sc").checked)return toast("Acceptez les conditions");var sec=$("ss").value;if(!/^[a-z]{5,6}$/.test(nk(sec)))return toast("Mot secret : 5 ou 6 lettres");var r=await SB.auth.signUp({email:t+EM,password:p,options:{data:{name:n,tel:t,role:S.rr}}});if(r.error)return toast("Ce numéro a déjà un compte");if(!r.data.session)return toast("Compte créé.");S.u=r.data.user.id;S.tab="";await SB.rpc("set_secret_word",{w:sec});lg("Inscription "+S.rr)},
+  logout:async function(){stopTrack();await SB.auth.signOut();S.u=null;S.del=0;S.pp="";S.sf=0;S.ce=0},
+  forgot:async function(){var t=cl($("ft").value);if(t.length!=10)return toast("Numéro à 10 chiffres (+225)");var r=await SB.rpc("request_password_reset",{t:t,w:$("fw").value});if(r.error)return toast("Envoi impossible");S.fgdone=1},
+  book:async function(d,id){var m=me(),t=tr(id);if(role()!="passager")return toast("Seuls les passagers peuvent réserver");if(!t)return;if(m.blk>Date.now())return toast("Réservations bloquées jusqu’à "+hm(m.blk));var n=Math.min(Math.max(1,S.pl||1),t.seats-taken(id));ok(await SB.from("bookings").insert({trip_id:id,passenger_id:S.u,places:n}));lg("Réservation demandée");S.pl=1;S.tab="res";S.sub="";toast("Demande envoyée")},
+  cancel:async function(d,id){var b=bk(id);if(!b||b.uid!=S.u)return;var late=b.st=="acceptée";ok(await SB.from("bookings").update({status:"annulée"}).eq("id",id));toast(late?"Annulation tardive":"Réservation annulée");lg("Réservation annulée")},
+  accept:async function(d,id){ok(await SB.from("bookings").update({status:"acceptée"}).eq("id",id));toast("Demande validée")},
+  deny:async function(d,id){ok(await SB.from("bookings").update({status:"refusée"}).eq("id",id));toast("Demande refusée")},
+  start:async function(d,id){var t=tr(id);if(!own(t))return;ok(await SB.from("trips").update({status:"en cours"}).eq("id",id));toast("Trajet débuté");startTrack(id);(async function(){var up={},g=await gps(true);if(g){up.from_lat=g.lat;up.from_lng=g.lng;SB.from("trip_positions").upsert({trip_id:id,lat:g.lat,lng:g.lng}).then(function(){})}else if(t.flat==null){var a=await geo2(t.from);if(a){up.from_lat=a.lat;up.from_lng=a.lng}}if(t.tlat==null){var b=await geo2(t.to);if(b){up.to_lat=b.lat;up.to_lng=b.lng}}if(Object.keys(up).length)SB.from("trips").update(up).eq("id",id).then(function(){})})()},
+  end:async function(d,id){var t=tr(id);if(!own(t))return;ok(await SB.from("trips").update({status:"terminé"}).eq("id",id));stopTrack();await SB.from("trip_positions").delete().eq("trip_id",id);toast("Trajet terminé")},
+  noshow:async function(d,id){ok(await SB.from("bookings").update({no_show:true}).eq("id",id));toast("Absence enregistrée")},
+  rps:async function(){var r=S.rp;if(!r)return;var m=$("rpm").value,x=$("rpt").value.trim();if(!x)return toast("Ajoutez quelques détails");if(D.reports.some(function(q){return q.bk==r.bk&&q.by==S.u}))return toast("Déjà signalé");ok(await SB.from("reports").insert({booking_id:r.bk,reported_id:r.who,reporter_id:S.u,reason:(m+" : "+x).slice(0,500)}));S.rp=null;toast("Signalement envoyé")},
+  pub:async function(){var f=$("pf").value.trim(),t=$("pt").value.trim(),v=vh(S.u);if(!f||!t)return toast("Indiquez départ et destination");if(!v)return toast("Complétez votre véhicule");await pubTrip(f,t,v,$("pd").value,$("ph").value,$("pp").value,$("pr").value,function(){lg("Trajet publié");S.tab="mine";toast("Trajet publié")})},
+  rls:async function(){var m=me(),v=vh(S.u),f=$("yf").value.trim(),t=$("yt").value.trim();if(role()!="conducteur"||m.dv!="verified"||!v)return toast("Dossier non validé");if(!f||!t)return toast("Indique départ et destination");await pubTrip(f,t,v,$("yd").value,$("yh").value,$("yp").value,$("yr").value,function(){S.rl=null;S.tab="mine";lg("Trajet relancé");toast("Trajet publié")})},
+  rqs:async function(){var f=$("xf").value.trim(),t=$("xt").value.trim(),p=Math.min(6,Math.max(1,+$("xp").value||1)),a=+$("xa").value;if(!f||!t)return toast("Indique départ et destination");if(!(a>=0)||$("xa").value==="")return toast("Indique le montant");var g=(await geoQ(f,2500)).r;ok(await SB.from("ride_requests").insert({passenger_id:S.u,from_place:f,to_place:t,depart_date:$("xd").value||today(),depart_time:$("xh").value||"07:00",places:p,price_offer:Math.round(a),note:$("xn").value.trim()||null,from_city:(g&&g.city)||me().city||f,from_lat:g?g.lat:null,from_lng:g?g.lng:null}));S.rq=null;S.tab="res";lg("Proposition de course");toast("Proposition envoyée")},
+  rqc:async function(d,id){ok(await SB.from("ride_requests").update({status:"annulée"}).eq("id",id));toast("Proposition annulée")},
+  rqa:async function(d,id){ok(await SB.rpc("accept_ride_request",{rid:id}));S.tab="mine";lg("Proposition acceptée");toast("Proposition acceptée")},
+  rqd:async function(d,id){ok(await SB.from("ride_request_declines").insert({request_id:id,driver_id:S.u}));toast("Proposition refusée")},
+  cho:async function(d,id){S.ch=id;S.msgs=[];S.rp=null;try{await loadMsgs()}catch(e){toast("Indisponible")}window.scrollTo(0,0)},
+  chx:async function(){if(REC.mr){REC.cancel=true;await stopRec()}S.ch=null;S.rec=0},
+  msend:async function(){var x=$("cm").value.trim();if(!x)return;ok(await SB.from("messages").insert({booking_id:S.ch,sender_id:S.u,body:x}));await loadMsgs();setTimeout(function(){window.scrollTo(0,document.body.scrollHeight)},50)},
+  mrec:async function(){if(REC.mr){REC.cancel=false;await stopRec();return}if(!window.MediaRecorder||!navigator.mediaDevices)return toast("Vocal non pris en charge");var st;try{st=await navigator.mediaDevices.getUserMedia({audio:true})}catch(e){return toast("Autorise le micro")}var mt=["audio/webm;codecs=opus","audio/mp4","audio/webm"].filter(function(m){return MediaRecorder.isTypeSupported(m)})[0];REC.chunks=[];REC.cancel=false;REC.mr=new MediaRecorder(st,mt?{mimeType:mt}:{});REC.mr.ondataavailable=function(e){if(e.data&&e.data.size)REC.chunks.push(e.data)};REC.t0=Date.now();REC.mr.start();S.rec=1;REC.tm=setTimeout(function(){if(REC.mr)stopRec().then(render)},60000)},
+  mcancel:async function(){REC.cancel=true;await stopRec()},
+  pos:async function(d,id){var m=me();if(!m.sos)return toast("Ajoute d’abord un numéro d’urgence");var t,i,g=await gps(true);if(!g)return toast("Active la localisation");if(d.k=="d"){t=tr(id);var v=vh(S.u)||{};i={driver_name:m.name,driver_tel:m.tel,vehicle:((v.type||"")+" "+(v.model||"")).trim(),plate:v.plate}}else{var b=bk(id);t=b&&tr(b.trip);var r=await SB.rpc("trip_share_info",{bid:id});i=(r.data&&r.data[0])||{}}if(!t)return;S.sh={name:m.sos.name,tel:m.sos.tel,txt:"📍 "+m.name+" partage sa position : https://www.google.com/maps?q="+g.lat+","+g.lng+"\nTrajet : "+t.from+" → "+t.to+"\nConducteur : "+(i.driver_name||"?")+(i.driver_tel?" – "+fmt(i.driver_tel):"")+"\nVéhicule : "+(i.vehicle||"?")+(i.plate?" – plaque "+i.plate:"")+"\nHeure : "+hm(Date.now())};lg("Position partagée")},
+  loc:async function(){toast("Recherche de ta position…");var g=await gps(false);if(!g)return toast("Active la localisation");var c=await rev(g.lat,g.lng);ok(await SB.from("profiles").update({lat:Math.round(g.lat*1000)/1000,lng:Math.round(g.lng*1000)/1000,city:c||me().city||null}).eq("id",S.u));toast(c?"Position enregistrée : "+c:"Position enregistrée")},
+  cityx:async function(){var c=$("cx").value.trim();ok(await SB.from("profiles").update({city:c||null}).eq("id",S.u));S.ce=0;toast(c?"Ville : "+c:"Ville effacée")},
+  cityset:async function(){var c=$("ct").value.trim();ok(await SB.from("profiles").update({city:c||null}).eq("id",S.u));toast(c?"Ville : "+c:"Ville effacée")},
+  altog:async function(){var on=me().alerts!==false;ok(await SB.from("profiles").update({alerts:!on}).eq("id",S.u));toast(on?"Alertes désactivées":"Alertes activées")},
+  addradd:async function(){var m=me(),l=$("al").value,p=$("ap").value.trim();if(!p)return toast("Indique le lieu");var a=(m.places||[]).slice();if(a.length>=8)return toast("8 adresses max");a.push({l:l,p:p});ok(await SB.from("profiles").update({places:a}).eq("id",S.u));toast("Adresse ajoutée")},
+  addrdel:async function(d,id){var a=(me().places||[]).slice();a.splice(id,1);ok(await SB.from("profiles").update({places:a}).eq("id",S.u))},
+  send:async function(){var m=me(),v=vh(S.u),n=D.driver_documents.filter(function(x){return x.uid==S.u}).length,e=[];if(!m.photo)e.push("photo de profil");if(!v||!v.model||!v.plate)e.push("modèle et plaque");if(!v||!v.photos.length)e.push("photo du véhicule");if(n<4)e.push((4-n)+" document(s)");if(e.length)return toast("Il manque : "+e.join(", "));await saveV();ok(await SB.from("profiles").update({driver_status:"review"}).eq("id",S.u));lg("Dossier envoyé");toast("Dossier envoyé pour vérification")},
+  call:async function(d,id){var r=await SB.rpc("get_contact",{bid:id});if(!r.data)return toast("Numéro indisponible");toast("Appel : "+fmt(r.data));location.href="tel:+225"+String(r.data).replace(/\D/g,"")},
+  sos:async function(d,id){var s=pf(S.u).sos;ok(await SB.from("sos_alerts").insert({user_id:S.u,trip_id:id,contact_name:s?s.name:null,contact_tel:s?s.tel:null}));toast("Alerte envoyée à l’équipe Trajet")},
+  sossave:async function(){var t=cl($("sost").value),n=$("sosn").value.trim();if(t.length!=10)return toast("Numéro à 10 chiffres (+225)");ok(await SB.from("profiles").update({sos_name:n,sos_tel:t}).eq("id",S.u));toast("Numéro enregistré")},
+  sosdel:async function(){ok(await SB.from("profiles").update({sos_name:null,sos_tel:null}).eq("id",S.u));toast("Numéro retiré")},
+  secset:async function(){var m=me(),w=$("sn2").value;if(!/^[a-z]{5,6}$/.test(nk(w)))return toast("Mot secret : 5 ou 6 lettres");ok(await SB.rpc("set_secret_word",{w:w,old:m.hs?$("so").value:null}));toast("Mot secret enregistré")},
+  wk:async function(d){ok(await SB.from("profiles").update({work_type:d.v}).eq("id",S.u))},
+  wd:async function(d,id){var w=me().work,a=((w&&w.days)||[]).slice(),i=a.indexOf(id);if(i>-1)a.splice(i,1);else a.push(id);a.sort(function(x,y){return x-y});ok(await SB.from("profiles").update({work_days:a}).eq("id",S.u))},
+  del:async function(){if(!S.del){S.del=1;return}ok(await SB.rpc("delete_my_account"));await SB.auth.signOut();S.u=null;S.del=0;toast("Compte supprimé")},
+  dval:async function(d,id){ok(await SB.from("profiles").update({driver_status:"verified"}).eq("id",id));toast("Conducteur vérifié")},
+  dno:async function(d,id){ok(await SB.from("profiles").update({driver_status:"none"}).eq("id",id));await SB.from("driver_documents").delete().eq("user_id",id);await SB.from("notifications").insert({user_id:id,text:"Dossier refusé."});toast("Dossier refusé")},
+  idok:async function(d,id){ok(await SB.from("profiles").update({id_status:"ok"}).eq("id",id));toast("Identité validée")},
+  ust:async function(d,id){var p=pf(id);if(!p)return;ok(await SB.from("profiles").update({status:d.v}).eq("id",id));if(d.v=="banni"){await SB.from("blocked_identifiers").upsert({value:p.tel,reason:"Banni"});await fn("ban",id)}else{await SB.from("blocked_identifiers").delete().eq("value",p.tel);if(p.st=="banni")await fn("unban",id)}toast("Compte "+d.v)},
+  rcl:async function(d,id){ok(await SB.from("reports").update({status:"classé"}).eq("id",id))},
+  rwarn:async function(d,id){var r=D.reports.filter(function(x){return x.id==id})[0];ok(await SB.from("reports").update({status:"traité"}).eq("id",id));if(r)await SB.from("notifications").insert({user_id:r.who,text:"Avertissement suite à un signalement."});toast("Averti")},
+  rban:async function(d,id){var r=D.reports.filter(function(x){return x.id==id})[0];if(!r)return;await A.ust({v:"banni"},r.who);ok(await SB.from("reports").update({status:"traité"}).eq("id",id))},
+  sosx:async function(d,id){ok(await SB.from("sos_alerts").update({status:"traité"}).eq("id",id))},
+  adadd:async function(){var g=S.ad||{};if(!(g.t||"").trim()&&!(g.x||"").trim()&&!g.b)return toast("Ajoutez un contenu");var path=null;if(g.b){path=Date.now()+".jpg";ok(await SB.storage.from("ads").upload(path,g.b,{contentType:"image/jpeg"}))}ok(await SB.from("ads").insert({title:(g.t||"").trim(),body:(g.x||"").trim(),image_path:path,duration_s:Math.min(60,Math.max(3,+g.d||10))}));S.ad=null;toast("Annonce publiée")},
+  adtog:async function(d,id){var x=D.ads.filter(function(a){return a.id==id})[0];if(x)ok(await SB.from("ads").update({active:!x.on}).eq("id",id))},
+  addel:async function(d,id){ok(await SB.from("ads").delete().eq("id",id));toast("Annonce supprimée")},
+  rpok:async function(d,id){var r=D.password_resets.filter(function(x){return x.id==id})[0],w=$("rp"+id).value.trim();if(!r)return;if(r.so===false&&S.cfr!=id){S.cfr=id;return toast("Mot secret incorrect : appuie encore pour confirmer.")}if(!/^\d{6,8}$/.test(w))return toast("Mot de passe : 6 à 8 chiffres");await fn("reset",r.uid,w);ok(await SB.from("password_resets").update({status:"traité"}).eq("id",id));toast("Réinitialisé")},
+  rpno:async function(d,id){ok(await SB.from("password_resets").update({status:"ignoré"}).eq("id",id))}
+};
+
+var RH={book:"book,trips",cancel:"book,people,trips",accept:"book,trips",deny:"book",start:"trips,book",end:"trips,book",noshow:"book",rps:"admin",pub:"trips",rls:"trips",rqs:"rr",rqc:"rr",rqa:"rr,trips,book",rqd:"rr",wk:"people",wd:"people",loc:"people",cityx:"people",cityset:"people",altog:"people",addradd:"people",addrdel:"people",sossave:"people",sosdel:"people",secset:"people",send:"people,veh",dval:"people",dno:"people,veh,admin",idok:"people",ust:"people,admin",rcl:"admin",rwarn:"admin",rban:"admin,people",sosx:"admin",adadd:"ads",adtog:"ads",addel:"ads",rpok:"admin",rpno:"admin",call:"",sos:"admin",login:"people",reg:"people"};
+Object.keys(RH).forEach(function(k){if(A[k])A[k].r=RH[k]?RH[k].split(","):[]});
+A.login.after=A.reg.after=1;
+A.msend.nl=A.mrec.nl=A.mcancel.nl=A.chx.nl=A.cho.nl=A.pos.nl=1;
+
+var busy=0;
+document.addEventListener("click",function(e){
+  var b=e.target.closest("[data-a]");if(!b)return;e.preventDefault();
+  var f=A[b.dataset.a];if(!f||busy)return;
+  var id=b.dataset.id;if(/^\d+$/.test(id||""))id=+id;
+  var rr;try{rr=f(b.dataset,id)}catch(x){toast(x.message);return}
+  if(rr&&rr.then){
+    busy=1;if(b.tagName=="BUTTON"&&!b.classList.contains("bell"))b.style.opacity="0.65";
+    rr.then(function(){return S.u&&!f.nl?load(f.r):0}).then(guardBan).catch(function(x){toast(x&&x.message?x.message:"Erreur")}).then(function(){busy=0;render();if(f.after&&S.u)bg(ALLP.filter(function(p){return p!="people"}))})
+  }else render()
+});
+
+document.addEventListener("input",function(e){
+  var t=e.target,m=me();
+  if(t.dataset.k&&m){var v=vh(m.id);if(v&&role()=="conducteur"){v[t.dataset.k]=t.value;clearTimeout(vt);vt=setTimeout(function(){saveV().catch(function(){})},700)}}
+  if(t.dataset.ad&&role()=="admin"){S.ad=S.ad||{t:"",x:"",i:""};S.ad[t.dataset.ad]=t.value}
+  if(t.dataset.s&&$("tl")){S.q.f=$("qf").value;S.q.t=$("qt").value;S.q.d=$("qd").value;$("tl").innerHTML=tl()}
+});
+
+document.addEventListener("change",async function(e){
+  var t=e.target,f=t.dataset.f,m=me();if(!f||!t.files.length||!m||busy)return;busy=1;
+  try{
+    var F=t.files[0],k=t.dataset.k,isImg=/^image/.test(F.type),ext=(F.name.split(".").pop()||"bin").toLowerCase().replace(/[^a-z0-9]/g,"").slice(0,5)||"bin";
+    if(!isImg&&f!="doc"&&f!="pid")throw new Error("Choisissez une image");
+    if(F.size>8e6)throw new Error("Fichier trop lourd (8 Mo max)");
+    var up1=async function(bucket,path,file){var b=file,ct=file.type||"application/octet-stream";if(/^image/.test(ct)){b=await rb(file);ct="image/jpeg"}ok(await SB.storage.from(bucket).upload(path,b,{contentType:ct,upsert:true}));return b};
+    var ex=isImg?"jpg":ext;
+    if(f=="ad"){S.ad=S.ad||{t:"",x:"",i:""};S.ad.b=await rb(F);S.ad.i=URL.createObjectURL(S.ad.b)}
+    else if(f=="pp"){var p1=S.u+"/avatar.jpg";await up1("avatars",p1,F);ok(await SB.from("profiles").update({photo_path:p1}).eq("id",S.u))}
+    else if(f=="vp"){var v=vh(S.u);v.paths=(v.paths||[]).slice();var fl=Array.prototype.slice.call(t.files);for(var i=0;i<fl.length;i++){var pp=S.u+"/"+Date.now()+"-"+i+".jpg";await up1("vehicles",pp,fl[i]);v.paths.push(pp)}await saveV()}
+    else if(f=="pid"){var p2=S.u+"/identite."+ex;await up1("documents",p2,F);ok(await SB.from("profiles").update({id_doc_path:p2,id_status:"review"}).eq("id",S.u))}
+    else if(f=="doc"){var p3=S.u+"/"+k+"."+ex;await up1("documents",p3,F);ok(await SB.from("driver_documents").upsert({user_id:S.u,kind:k,file_path:p3,file_name:F.name},{onConflict:"user_id,kind"}))}
+    if(f!="ad")await load(f=="vp"||f=="doc"?["veh"]:["people"])
+  }catch(err){toast(err&&err.message?err.message:"Envoi impossible")}
+  busy=0;render()
+});
+
+var tick=0;
+var vResOld=vRes,vPubOld=vPub,vProfOld=vProf;
+function cyTrip(t,act){var d=pf(t.driver),free=t.seats-taken(t.id);return '<div class="cy-trip"><div class="cy-time">'+fd(t.date)+' · '+t.time+'</div><div class="cy-route"><div class="cy-line2"><i></i><b></b><i></i></div><div><div class="cy-place">'+esc(t.from)+'</div><div class="cy-place">'+esc(t.to)+'</div></div><div class="cy-price">'+fcfa(t.price)+'</div></div><div class="cy-meta"><span>'+(t.veh=="Moto"?'Moto':'Voiture')+'</span><span>'+free+'/'+t.seats+' places</span>'+(t.fcity?'<span>'+esc(t.fcity)+'</span>':'')+(d?'<span>'+esc(d.name)+'</span>':'')+'</div><div class="cy-actions">'+(act||'<button class="pri full" data-a="open" data-id="'+t.id+'">Voir le trajet</button>')+'</div></div>'}
+function vSearch(){if(S.sub=="d"&&tr(S.sel))return vTripDetail();var n=D.trips.filter(function(t){return t.st=="publié"&&t.driver!=S.u}).slice(0,3);var active=D.bookings.filter(function(b){var t=tr(b.trip);return b.uid==S.u&&b.st=="acceptée"&&t&&t.st=="en cours"})[0],at=active&&tr(active.trip);return '<section class="cy"><div class="cy-k">TRAJET · CÔTE D’IVOIRE</div><div class="cy-title">Où allez-vous<br><em>aujourd’hui ?</em></div><div class="cy-box"><button class="cy-loc" data-a="sfo"><span class="cy-dot"></span><div><b>Départ</b><span>'+(S.q.f?esc(S.q.f):'Votre position actuelle')+'</span></div></button><div class="cy-line"></div><button class="cy-loc" data-a="sfo"><span class="cy-dot red"></span><div><b>Destination</b><span>'+(S.q.t?esc(S.q.t):'Où souhaitez-vous aller ?')+'</span></div></button><div class="cy-go"><button class="pri full" data-a="sfo">Rechercher un trajet</button></div></div><div class="cy-grid"><div class="cy-stat"><small>Réservations</small><b>'+D.bookings.filter(function(b){return b.uid==S.u}).length+'</b></div><div class="cy-stat"><small>Départs disponibles</small><b>'+D.trips.filter(function(t){return t.st=="publié"&&t.driver!=S.u}).length+'</b></div></div>'+(at?'<div class="cy-live">'+live(at)+'<div class="cy-live-info"><small>TRAJET EN COURS</small><b>'+esc(at.to)+'</b></div></div>':'')+'<div class="cy-sec"><h2>Pour vous</h2><span>Trajets disponibles</span></div>'+(n.length?n.map(cyTrip).join(''):'<div class="card"><b>Aucun trajet pour le moment</b><p class="sub">Essayez une autre destination.</p></div>')+'</section>'+(S.sf?'<div style="margin-top:14px">'+searchForm()+'</div>':'')}
+function vRes(){return '<h1>Mes trajets</h1><p class="sub">Tout ce qui concerne vos réservations et vos déplacements.</p>'+vResOld()}
+function vReq(){var m=me(),sc0=sc(m.id),mine=D.trips.filter(function(t){return t.driver==m.id}),p=D.bookings.filter(function(b){return b.st=="attente"&&mine.some(function(t){return t.id==b.trip})});return '<div class="cy-darkhero"><h2>Mode conducteur</h2><p>'+p.length+' demande'+(p.length>1?'s':'')+' à traiter.</p><button class="pri full" data-a="tab" data-t="pub">Publier un trajet</button></div><div class="cy-metrics"><div class="cy-metric"><small>Trajets</small><b>'+mine.length+'</b></div><div class="cy-metric"><small>Demandes</small><b>'+p.length+'</b></div><div class="cy-metric"><small>Fiabilité</small><b>'+sc0+'</b></div></div><div class="cy-sec"><h2>Demandes</h2></div>'+(p.length?p.map(function(b){var t=tr(b.trip),u=pf(b.uid);return '<div class="cy-trip"><div class="cy-time">DEMANDE</div><div class="cy-place" style="margin-top:9px">'+esc(u&&u.name||"Passager")+'</div><div class="cy-meta"><span>'+esc(t.from)+' → '+esc(t.to)+'</span><span>'+b.pl+' place'+(b.pl>1?'s':'')+'</span></div><div class="cy-actions"><button class="pri" data-a="accept" data-id="'+b.id+'">Accepter</button><button class="out" data-a="deny" data-id="'+b.id+'">Refuser</button></div></div>'}).join(''):'<div class="card"><b>Aucune demande en attente.</b><p class="sub">Vous êtes à jour.</p></div>')}
+function vMine(){var m=me(),l=D.trips.filter(function(t){return t.driver==m.id}).reverse();return '<div class="cy-darkhero"><h2>Mes trajets</h2><p>Votre tableau de bord conducteur.</p><button class="pri full" data-a="tab" data-t="pub">Publier un trajet</button></div><div class="cy-sec"><h2>Vos départs</h2><span>'+l.length+'</span></div>'+(l.length?l.map(function(t){return cyTrip(t,'<button class="out full" data-a="open" data-id="'+t.id+'">Gérer</button>')}).join(''):'<div class="card"><b>Aucun trajet publié.</b></div>')}
+function vPub(){return '<h1>Publier un trajet</h1><p class="sub">Une interface courte, centrée sur le départ et le prix.</p>'+vPubOld()}
+function vProf(){var m=me(),r=role(),sc0=sc(m.id);return '<div class="cy-profile"><div class="cy-avatar">'+(m.photo?'<img src="'+m.photo+'">':ico("user",28,"#fff"))+'</div><div class="cy-name">'+esc(m.name)+'</div><p class="sub">'+(r=="conducteur"?'Conducteur':'Passager')+' · '+fmt(m.tel)+'</p><div class="cy-pgrid"><div><small>Fiabilité</small><b>'+sc0+'/100</b></div><div><small>Statut</small><b>'+((m.dv=="verified"||m.idv=="ok")?'Vérifié':'À compléter')+'</b></div></div></div>'+vProfOld()}
+
+setInterval(async function(){
+  if(!S.u||document.hidden)return;
+  tick++;
+  var re=$("rect");
+  if(re&&REC.mr){var s=Math.floor((Date.now()-REC.t0)/1000);re.textContent=Math.floor(s/60)+":"+("0"+s%60).slice(-2)}
+  var ae=$("ad"),al=D.ads.filter(function(x){return x.on});
+  if(ae&&al.length>1){var n=Date.now(),c=al[(S.ai||0)%al.length];if(!S.ast)S.ast=n;if(n-S.ast>=Math.min(60,c.d||10)*1000){S.ai=(S.ai||0)+1;S.ast=n;ae.innerHTML=adHtml()}}
+  if(tick%4===0&&S.ch&&!busy&&!REC.mr){
+    var last=(S.msgs&&S.msgs.length)?S.msgs[S.msgs.length-1].id:0;
+    try{await loadMsgs();var n2=(S.msgs&&S.msgs.length)?S.msgs[S.msgs.length-1].id:0,el=$("msgs");if(n2!=last&&el){el.innerHTML=msgsHtml();window.scrollTo(0,document.body.scrollHeight)}}catch(e){}
+  }
+  if(tick%5===0&&!busy&&document.querySelector("[id^=leafletMap_]")){
+    var r=await SB.from("trip_positions").select("*");
+    if(!r.error){D.pos={};r.data.forEach(function(x){D.pos[x.trip_id]={lat:x.lat,lng:x.lng,at:ms(x.updated_at)}});D.trips.forEach(function(t){var elMap=$("leafletMap_"+t.id);if(!elMap||t.st!="en cours")return;var g=prog(t);if(!g)return;var curLat = g.lat, curLng = g.lng; initLiveMap(t.id, t.flat, t.flng, t.tlat, t.tlng, curLat, curLng, t.driver == S.u);var x=$("lvt"+t.id);if(x)x.textContent="À "+dist(g.rem)+" de l’arrivée · "+ago(g.at)})}
+  }
+  if(tick%30===0&&!busy&&!S.rp){
+    var a=document.activeElement;if(a&&/INPUT|TEXTAREA|SELECT/.test(a.tagName))return;
+    if(["req","mine","res","notif","adm"].indexOf(S.tab)>-1&&!(S.tab=="adm"&&S.at=="ads")){busy=1;load(tpar(S.tab)).then(function(){busy=0;render()}).catch(function(){busy=0})}
+    else if(S.tab=="search"&&!S.sub&&$("tl")){load(["trips","people"]).then(function(){if($("tl")&&!S.sub)$("tl").innerHTML=tl()}).catch(function(){})}}
+},1000);
+
+if(location.hash=="#gestion")S.adm=1;
+(async function(){try{var s=(await SB.auth.getSession()).data.session;if(s){S.u=s.user.id;await load(["people"]);await guardBan();if(S.u){render();await load(ALLP.filter(function(p){return p!="people"}))}}}catch(e){S.u=null}render()})();
+</script>
+</body>
+</html>
